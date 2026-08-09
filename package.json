@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "eslint"
   },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
+  },
   "dependencies": {
     "mcp-remote": "^0.1.38",
     "next": "^16.3.0",
@@ -33,6 +36,7 @@
     "prisma": "^5.22.0",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5",
     "vitest": "^4.1.10"
   }

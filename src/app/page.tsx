@@ -7,6 +7,7 @@ import {
   Play,
   Ticket,
   ChevronRight,
+  ChevronLeft,
   Star,
   Film,
   Sparkles,
@@ -15,6 +16,9 @@ import {
   Mail,
   ArrowRight,
   CheckCircle2,
+  Clock,
+  Calendar,
+  X,
 } from "lucide-react";
 import { useBooking } from "@/context/BookingContext";
 
@@ -24,6 +28,11 @@ export default function HomePage() {
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [emailInput, setEmailInput] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+
+  // Hero Carousel State
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [playingTrailerUrl, setPlayingTrailerUrl] = useState<string | null>(null);
+
   const { setMovie } = useBooking();
 
   useEffect(() => {
@@ -45,10 +54,38 @@ export default function HomePage() {
 
   const nowShowing = movies.filter((m) => m.status === "NOW_SHOWING");
   const comingSoon = movies.filter((m) => m.status === "COMING_SOON");
-  const heroMovie = movies[0] || {
-    id: "mov_godzilla",
-    title: "Godzilla x Kong: The New Empire",
-    posterUrl: "/images/godzilla_vs_kong.jpg",
+
+  // Hero Featured Carousel Items (Real DB Movies)
+  const heroFeaturedMovies = nowShowing.length > 0 ? nowShowing : movies;
+
+  // Auto-rotate Hero Carousel every 6 seconds
+  useEffect(() => {
+    if (heroFeaturedMovies.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroFeaturedMovies.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [heroFeaturedMovies.length]);
+
+  const activeHeroMovie = heroFeaturedMovies[currentSlide] || {
+    id: "mov_default",
+    title: "Gladiator II",
+    tagline: "Prepare to be entertained.",
+    description: "Lucius enters the Colosseum after his home is conquered by tyrannical Emperors.",
+    posterUrl: "https://image.tmdb.org/t/p/w500/2cxhvwyEwRlysAmRH4iodkvo0z5.jpg",
+    bannerUrl: "https://image.tmdb.org/t/p/original/tOqIwliWMovSIZ9DyvHcHI7p2im.jpg",
+    rating: 8.8,
+    ageRating: "PG-13",
+    durationMins: 148,
+    genres: "Action, Adventure, Drama",
+  };
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % heroFeaturedMovies.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + heroFeaturedMovies.length) % heroFeaturedMovies.length);
   };
 
   const faqItems = [
@@ -79,7 +116,6 @@ export default function HomePage() {
     },
   ];
 
-  // Reviews arranged matching Figma screenshot grid
   const reviews = [
     {
       name: "Ada",
@@ -102,7 +138,7 @@ export default function HomePage() {
       role: "Movie goer",
       avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80",
       quote:
-        "Booked two IMAX seats in 45 seconds; the live seat map never stuttered and highlighted rows I’d rated before. Nitpick: indie titles lurk under genre filters, an Arthouse tab would take this from great to flawless.",
+        "Booked two IMAX seats in 45 seconds; the live seat map never stuttered and highlighted rows I’d rated before.",
       stars: 5,
     },
     {
@@ -110,23 +146,7 @@ export default function HomePage() {
       role: "Artist",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
       quote:
-        "The dark mode and minimal pop-ups made late-night browsing painless. Other sites spam me with trailers auto-playing; this one respected my bandwidth.",
-      stars: 5,
-    },
-    {
-      name: "James",
-      role: "Teacher",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80",
-      quote:
-        "Wish list feature is underrated. I tagged three upcoming releases and got opening-night seat drops before they sold out. Chose recliners, prepaid popcorn, barcode flashed and doors opened without fuss.",
-      stars: 5,
-    },
-    {
-      name: "John",
-      role: "Banker",
-      avatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=150&q=80",
-      quote:
-        "Ticketor consistently goes above and beyond my expectations..",
+        "The dark mode and minimal pop-ups made late-night browsing painless. Highly recommend Ticketor!",
       stars: 5,
     },
   ];
@@ -141,57 +161,137 @@ export default function HomePage() {
 
   return (
     <div className="space-y-24 pb-32 overflow-hidden bg-[#010108] text-[#E0E0E4] font-sans">
-      {/* 1. HERO SECTION WITH GODZILLA VS KONG FIGMA BACKGROUND */}
-      <section className="relative w-full min-h-[92vh] flex flex-col justify-between pt-12 pb-16 overflow-hidden">
-        {/* Godzilla vs Kong Hero Background */}
+      {/* 1. INTERACTIVE HERO FEATURED MOVIE CAROUSEL */}
+      <section className="relative w-full min-h-[90vh] flex flex-col justify-between pt-8 pb-12 overflow-hidden group">
+        {/* Dynamic Background Image with Smooth Fade */}
         <div className="absolute inset-0 z-0">
-          <img
-            src="/images/godzilla_vs_kong.jpg"
-            alt="Godzilla vs Kong Action Movie Background"
-            className="w-full h-full object-cover object-center opacity-60 scale-105"
-          />
-          {/* Scrim Dark Gradients */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#010108] via-[#010108]/50 to-transparent" />
+          {heroFeaturedMovies.map((m, idx) => (
+            <div
+              key={m.id || idx}
+              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                idx === currentSlide ? "opacity-70 scale-105" : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <img
+                src={m.bannerUrl || m.posterUrl}
+                alt={m.title}
+                className="w-full h-full object-cover object-center"
+              />
+            </div>
+          ))}
+
+          {/* Scrim Gradients for Visual Contrast */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#010108] via-[#010108]/60 to-[#010108]/30" />
           <div className="absolute inset-0 bg-radial-at-c from-transparent via-[#010108]/70 to-[#010108]" />
         </div>
 
-        <div className="relative z-10 max-w-5xl mx-auto px-4 text-center my-auto space-y-8 pt-8">
-          <h1 className="text-5xl sm:text-7xl lg:text-[84px] font-extrabold text-white tracking-tight uppercase leading-[1.1] drop-shadow-2xl font-['Manrope']">
-            BOOK YOUR MOVIE <br />
-            <span className="text-[#FCFC65]">TICKETS NOW!</span>
-          </h1>
-
-          <p className="text-lg sm:text-xl font-bold text-[#E0E0E4] max-w-xl mx-auto capitalize leading-relaxed">
-            Watch the latest movies at your favorite cinemas
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-            <Link
-              href={`/movies/${heroMovie.id}`}
-              onClick={() =>
-                setMovie({
-                  id: heroMovie.id,
-                  title: heroMovie.title,
-                  poster: heroMovie.posterUrl,
-                })
-              }
-              className="px-8 py-4 rounded-md bg-[#FCFC65] hover:bg-[#ecec50] text-[#010108] font-bold text-base uppercase tracking-wider shadow-xl shadow-[#FCFC65]/20 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-3"
+        {/* Carousel Navigation Arrow Controls */}
+        {heroFeaturedMovies.length > 1 && (
+          <>
+            <button
+              onClick={prevSlide}
+              className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-[#141418]/80 hover:bg-[#FCFC65] hover:text-[#010108] text-white border border-[#1A1A1F] flex items-center justify-center backdrop-blur-md transition-all shadow-2xl"
+              aria-label="Previous Featured Movie"
             >
-              <span>Explore Movies</span>
-              <ArrowRight className="w-5 h-5 text-[#010108]" />
-            </Link>
-
-            <Link
-              href="/showtimes"
-              className="px-8 py-4 rounded-md bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-base uppercase tracking-wider backdrop-blur-xl transition-all flex items-center gap-2"
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <button
+              onClick={nextSlide}
+              className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-[#141418]/80 hover:bg-[#FCFC65] hover:text-[#010108] text-white border border-[#1A1A1F] flex items-center justify-center backdrop-blur-md transition-all shadow-2xl"
+              aria-label="Next Featured Movie"
             >
-              <span>Find Cinema</span>
-            </Link>
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          </>
+        )}
+
+        {/* Hero Active Movie Content Overlay */}
+        <div className="relative z-10 max-w-6xl mx-auto px-4 w-full my-auto pt-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="lg:col-span-8 space-y-6 text-left">
+            {/* Metadata Pills */}
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="px-3 py-1 rounded bg-[#FCFC65] text-[#010108] text-xs font-black uppercase tracking-wider">
+                🔥 #1 NOW SHOWING
+              </span>
+              <span className="px-3 py-1 rounded bg-[#141418]/90 border border-[#1A1A1F] text-[#FCFC65] text-xs font-mono font-bold">
+                ⭐ {activeHeroMovie.rating ? activeHeroMovie.rating : 8.8} / 10
+              </span>
+              <span className="px-3 py-1 rounded bg-[#141418]/90 border border-[#1A1A1F] text-white text-xs font-semibold">
+                {activeHeroMovie.ageRating || "PG-13"}
+              </span>
+              <span className="px-3 py-1 rounded bg-[#141418]/90 border border-[#1A1A1F] text-[#9797AA] text-xs font-medium">
+                {activeHeroMovie.durationMins || 148} MINS
+              </span>
+            </div>
+
+            {/* Dynamic Movie Title */}
+            <h1 className="text-5xl sm:text-7xl lg:text-[76px] font-black text-white tracking-tight uppercase leading-[1.05] drop-shadow-2xl font-['Manrope']">
+              {activeHeroMovie.title}
+            </h1>
+
+            <p className="text-base sm:text-lg text-[#E0E0E4] max-w-2xl font-normal leading-relaxed line-clamp-3">
+              {activeHeroMovie.description || activeHeroMovie.tagline}
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-4 pt-2">
+              <Link
+                href={`/showtimes?movieId=${activeHeroMovie.id}`}
+                onClick={() =>
+                  setMovie({
+                    id: activeHeroMovie.id,
+                    title: activeHeroMovie.title,
+                    poster: activeHeroMovie.posterUrl,
+                  })
+                }
+                className="px-8 py-4 rounded-md bg-[#FCFC65] hover:bg-[#ecec50] text-[#010108] font-bold text-base uppercase tracking-wider shadow-xl shadow-[#FCFC65]/20 transition-all transform hover:scale-105 flex items-center gap-3"
+              >
+                <Ticket className="w-5 h-5 fill-[#010108]" />
+                <span>Book Tickets</span>
+              </Link>
+
+              {activeHeroMovie.watchUrl && (
+                <button
+                  onClick={() => setPlayingTrailerUrl(activeHeroMovie.watchUrl)}
+                  className="px-8 py-4 rounded-md bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-base uppercase tracking-wider backdrop-blur-xl transition-all flex items-center gap-2"
+                >
+                  <Play className="w-5 h-5 fill-current text-[#FCFC65]" />
+                  <span>Watch Trailer</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Hero Movie Poster Display */}
+          <div className="lg:col-span-4 hidden lg:flex justify-end">
+            <div className="w-72 aspect-[2/3] rounded-3xl overflow-hidden border-2 border-[#FCFC65]/40 shadow-2xl relative group-hover:border-[#FCFC65] transition-all">
+              <img
+                src={activeHeroMovie.posterUrl}
+                alt={activeHeroMovie.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Counter Stats Bar matching Figma Frame 1464203890 */}
-        <div className="relative z-10 max-w-4xl mx-auto px-4 w-full pt-12 space-y-6">
+        {/* Slide Indicator Dots / Pills Bar */}
+        <div className="relative z-10 max-w-4xl mx-auto px-4 w-full pt-8 space-y-6">
+          <div className="flex items-center justify-center gap-2">
+            {heroFeaturedMovies.map((m, idx) => (
+              <button
+                key={m.id || idx}
+                onClick={() => setCurrentSlide(idx)}
+                className={`h-2.5 rounded-full transition-all ${
+                  idx === currentSlide
+                    ? "w-10 bg-[#FCFC65] shadow-md shadow-[#FCFC65]/30"
+                    : "w-2.5 bg-white/30 hover:bg-white/60"
+                }`}
+                aria-label={`Slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+
+          {/* Counter Stats Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 py-6 px-8 rounded-2xl bg-[#141418]/80 backdrop-blur-xl border border-[#1A1A1F] text-center">
             <div className="space-y-1">
               <div className="text-4xl sm:text-5xl font-black text-white tracking-tight">500 +</div>
@@ -206,14 +306,29 @@ export default function HomePage() {
               <div className="text-xs font-semibold text-[#9797AA] uppercase tracking-wider">Happy Customers</div>
             </div>
           </div>
-
-          {/* Promo Strip from Figma */}
-          <div className="py-3 px-6 rounded-full bg-[#141418] border border-[#1A1A1F] text-center text-xs font-bold text-[#E0E0E4]">
-            <span>Special Offer: Buy 2 Tickets, Get 100% Cash Back On Popcorn & Drink — </span>
-            <Link href="/showtimes" className="text-[#FCFC65] underline hover:text-white">Learn More</Link>
-          </div>
         </div>
       </section>
+
+      {/* Trailer Video Player Modal */}
+      {playingTrailerUrl && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="relative w-full max-w-4xl aspect-video rounded-3xl overflow-hidden border border-[#FCFC65]/40 shadow-2xl bg-black">
+            <button
+              onClick={() => setPlayingTrailerUrl(null)}
+              className="absolute top-4 right-4 z-20 p-2.5 rounded-full bg-black/70 hover:bg-[#FCFC65] hover:text-black text-white transition-all"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <iframe
+              src={playingTrailerUrl}
+              title="Official Trailer"
+              className="w-full h-full border-0"
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
 
       {/* 2. CURRENTLY IN CINEMAS CAROUSEL */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
@@ -298,7 +413,6 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Card 1: Horror Film Festival */}
           <div className="relative rounded-2xl overflow-hidden bg-[#141418] border border-[#1A1A1F] min-h-[360px] flex flex-col justify-end p-8 group hover:border-[#FCFC65]/50 transition-all">
             <img
               src="/images/horror_festival.jpg"
@@ -322,7 +436,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Card 2: Student Discount */}
           <div className="relative rounded-2xl overflow-hidden bg-[#141418] border border-[#1A1A1F] min-h-[360px] flex flex-col justify-end p-8 group hover:border-[#FCFC65]/50 transition-all">
             <img
               src="/images/student_discount.jpg"
@@ -378,10 +491,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 6. GODZILLA VS KONG FEATURED BANNER & BRAND LOGOS (FIGMA 4232:29383) */}
+      {/* 6. FEATURED BANNER & BRAND LOGOS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="bg-[#141418] border border-[#1A1A1F] rounded-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 items-center min-h-[500px]">
-          {/* Left Poster/Audience Image */}
           <div className="lg:col-span-6 relative h-[380px] lg:h-[500px] w-full overflow-hidden bg-black">
             <img
               src="/images/cinema_audience.jpg"
@@ -391,7 +503,6 @@ export default function HomePage() {
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#141418]/40 to-[#141418]" />
           </div>
 
-          {/* Right Text Content */}
           <div className="lg:col-span-6 p-8 lg:p-12 space-y-6">
             <div className="space-y-4">
               <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight capitalize font-['Manrope']">
@@ -419,7 +530,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Brand Logos Bar (Figma 4232:29395) */}
+        {/* Brand Logos Bar */}
         <div className="py-6 px-8 rounded-2xl bg-[#141418]/60 border border-[#1A1A1F] flex flex-wrap items-center justify-around gap-8 text-center opacity-90">
           <span className="text-rose-600 text-3xl font-black tracking-tighter">NETFLIX</span>
           <span className="text-cyan-400 text-2xl font-bold italic">showmax</span>
@@ -430,10 +541,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 7. MOBILE APP DOWNLOAD SECTION (FIGMA 4232:29427) */}
+      {/* 7. MOBILE APP DOWNLOAD SECTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-[#141418] border border-[#1A1A1F] rounded-3xl p-8 sm:p-14 grid grid-cols-1 md:grid-cols-12 gap-10 items-center">
-          {/* Phone Mockup Illustration */}
           <div className="md:col-span-5 flex justify-center">
             <div className="w-64 h-[500px] rounded-[44px] bg-black border-4 border-slate-700 shadow-2xl p-5 flex flex-col justify-between relative overflow-hidden group hover:border-[#FCFC65] transition-all">
               <div className="w-20 h-4 bg-slate-800 rounded-full mx-auto" />
@@ -455,7 +565,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Right Text Details */}
           <div className="md:col-span-7 space-y-6">
             <h2 className="text-3xl sm:text-4xl font-bold text-white capitalize leading-tight font-['Manrope']">
               Enjoy Ticketor Mobile App Experience
@@ -476,7 +585,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 8. HAPPY CUSTOMERS / USER REVIEWS SECTION (FIGMA 4232:29440) */}
+      {/* 8. HAPPY CUSTOMERS / USER REVIEWS SECTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="text-center max-w-2xl mx-auto space-y-3">
           <h2 className="text-3xl sm:text-4xl font-bold text-white uppercase font-['Manrope']">
@@ -494,7 +603,6 @@ export default function HomePage() {
               className="bg-[#141418] border-2 border-[#1A1A1F] rounded-xl p-8 space-y-6 flex flex-col justify-between hover:border-[#FCFC65]/40 transition-all duration-300"
             >
               <div className="space-y-4">
-                {/* 5-Star Row */}
                 <div className="flex items-center gap-1">
                   {[...Array(rev.stars)].map((_, i) => (
                     <Star key={i} className="w-5 h-5 fill-[#FCFC65] text-[#FCFC65]" />
@@ -521,7 +629,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 9. FREQUENTLY ASKED QUESTIONS (FAQ) SECTION (FIGMA 4232:29526) */}
+      {/* 9. FREQUENTLY ASKED QUESTIONS (FAQ) SECTION */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="text-center space-y-3">
           <h2 className="text-3xl sm:text-4xl font-bold text-white uppercase font-['Manrope']">
@@ -532,7 +640,6 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Accordion List */}
         <div className="space-y-4">
           {faqItems.map((item, idx) => {
             const isOpen = activeFaq === idx;
@@ -563,7 +670,6 @@ export default function HomePage() {
           })}
         </div>
 
-        {/* FAQ Contact CTA Box */}
         <div className="bg-[#141418] border border-[#1A1A1F] rounded-2xl p-8 text-center space-y-5">
           <div className="space-y-1">
             <h3 className="text-2xl font-bold text-white capitalize">Still Have A Question?</h3>
@@ -578,7 +684,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 10. NEWSLETTER SUBSCRIPTION SECTION (FIGMA 4232:29559) */}
+      {/* 10. NEWSLETTER SUBSCRIPTION SECTION */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-[#141418] border border-[#1A1A1F] rounded-3xl p-8 sm:p-12 text-center space-y-8 relative overflow-hidden shadow-2xl">
           <div className="space-y-2">

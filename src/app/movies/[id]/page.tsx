@@ -3,7 +3,7 @@
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Star, Clock, Calendar, MapPin, Ticket, Play, Heart, ChevronRight, ThumbsUp, ChevronDown } from "lucide-react";
+import { Star, Clock, Calendar, MapPin, Ticket, Play, Heart, ChevronRight, ThumbsUp, ChevronDown, ChevronUp, X } from "lucide-react";
 import { useBooking } from "@/context/BookingContext";
 
 export default function MovieDetailsPage({
@@ -19,7 +19,8 @@ export default function MovieDetailsPage({
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isPlayingTrailer, setIsPlayingTrailer] = useState(false);
-  const [reviewFilter, setReviewFilter] = useState("All Reviews");
+  const [showAllCast, setShowAllCast] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   useEffect(() => {
     fetchMovieDetails();
@@ -58,7 +59,7 @@ export default function MovieDetailsPage({
     );
   }
 
-  // Parse Real TMDB Cast list with profile photos & character names
+  // Parse Real TMDB Cast list
   let castList = [];
   try {
     if (movie.cast && movie.cast.startsWith("[")) {
@@ -84,8 +85,10 @@ export default function MovieDetailsPage({
     ];
   }
 
+  const displayedCast = showAllCast ? castList : castList.slice(0, 6);
+
   // Real YouTube Trailer URL from TMDB
-  const trailerEmbedUrl = movie.watchUrl || "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1";
+  const trailerEmbedUrl = movie.watchUrl || "https://www.youtube.com/embed/abP1EYHvGvc?autoplay=1";
 
   // User reviews list
   const reviewsList = movie.reviews && movie.reviews.length > 0
@@ -98,63 +101,124 @@ export default function MovieDetailsPage({
     : [
         { score: 9.2, author: "Marco D.", date: "Jan 25, 2026", comment: "Finally a film that gets the technical side all right. The action sequences had me holding my breath!" },
         { score: 8.8, author: "Lina K.", date: "Jul 12, 2025", comment: "It's a beautifully shot film, no doubt about that. Extremely well acted and executed." },
-        { score: 8.5, author: "Reza A.", date: "Jul 18, 2025", comment: "Pure adrenaline from start to finish! Amazing visual audio experience." },
+        { score: 9.5, author: "Alex R.", date: "May 18, 2025", comment: "Stunning visual fidelity in IMAX Laser format. One of the best theatrical experiences this decade." },
+        { score: 9.0, author: "Sarah W.", date: "Mar 04, 2025", comment: "Incredible sound design and legendary casting. A must-watch on the biggest screen available." },
       ];
 
-  return (
-    <div className="pb-32 space-y-16 bg-[#010108] text-[#E0E0E4] font-sans min-h-screen">
-      {/* 1. FIGMA MOVIE DETAILS HERO WITH SPLIT MEDIA (4235:22720) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 space-y-8">
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white uppercase tracking-tight font-['Manrope']">
-          {movie.title}
-        </h1>
+  const displayedReviews = showAllReviews ? reviewsList : reviewsList.slice(0, 2);
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-          {/* Main Poster Image */}
-          <div className="aspect-[16/10] rounded-3xl overflow-hidden border border-[#1A1A1F] shadow-2xl relative bg-black">
-            <img src={movie.posterUrl} alt={movie.title} className="w-full h-full object-cover" />
+  return (
+    <div className="pb-32 space-y-16 bg-[#010108] text-[#E0E0E4] min-h-screen font-sans">
+      {/* 1. HERO MEDIA SPLIT WITH PLAYABLE TRAILER OVERLAY */}
+      <section className="relative w-full min-h-[75vh] flex items-end justify-center pb-12 overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <img
+            src={movie.bannerUrl || movie.posterUrl}
+            alt={movie.title}
+            className="w-full h-full object-cover object-center opacity-40 scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#010108] via-[#010108]/60 to-transparent" />
+          <div className="absolute inset-0 bg-radial-at-c from-transparent via-[#010108]/70 to-[#010108]" />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
+          {/* Left Poster Thumbnail & Trailer Overlay */}
+          <div className="lg:col-span-4 relative group">
+            <div className="aspect-[2/3] rounded-3xl overflow-hidden border-2 border-[#FCFC65]/40 shadow-2xl relative bg-black">
+              <img
+                src={movie.posterUrl}
+                alt={movie.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <button
+                  onClick={() => setIsPlayingTrailer(true)}
+                  className="w-16 h-16 rounded-full bg-[#FCFC65] text-[#010108] flex items-center justify-center shadow-2xl transform hover:scale-110 transition-transform"
+                >
+                  <Play className="w-8 h-8 fill-[#010108] ml-1" />
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsPlayingTrailer(true)}
+              className="mt-4 w-full py-3 rounded-xl bg-[#141418] border border-[#1A1A1F] hover:border-[#FCFC65] text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+            >
+              <Play className="w-4 h-4 text-[#FCFC65] fill-[#FCFC65]" />
+              <span>Watch Official Trailer</span>
+            </button>
           </div>
 
-          {/* Trailer Media Preview with Real TMDB YouTube Play Button */}
-          <div className="aspect-[16/10] rounded-3xl overflow-hidden border border-[#1A1A1F] shadow-2xl relative bg-black group">
-            {isPlayingTrailer ? (
-              <iframe
-                src={trailerEmbedUrl}
-                title={`${movie.title} Official Trailer`}
-                className="w-full h-full border-0"
-                allow="autoplay; encrypted-media"
-                allowFullScreen
-              />
-            ) : (
-              <>
-                <img src={movie.bannerUrl || movie.posterUrl} alt="Trailer Thumbnail" className="w-full h-full object-cover opacity-80" />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <button
-                    onClick={() => setIsPlayingTrailer(true)}
-                    className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md border border-white/40 text-white flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-all hover:bg-[#FCFC65] hover:text-[#010108] hover:border-[#FCFC65]"
-                  >
-                    <Play className="w-8 h-8 fill-current ml-1" />
-                  </button>
-                </div>
-              </>
+          {/* Right Header Metadata */}
+          <div className="lg:col-span-8 space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="px-3 py-1 rounded bg-[#FCFC65] text-[#010108] text-xs font-bold uppercase tracking-wider">
+                {movie.status === "NOW_SHOWING" ? "Now Showing" : "Coming Soon"}
+              </span>
+              <span className="px-3 py-1 rounded bg-white/10 text-white text-xs font-bold border border-white/20">
+                {movie.ageRating || "PG-13"}
+              </span>
+              <span className="px-3 py-1 rounded bg-white/10 text-[#FCFC65] text-xs font-mono font-bold border border-[#FCFC65]/30">
+                ⭐ {movie.rating ? movie.rating.toFixed(1) : "8.8"} / 10
+              </span>
+            </div>
+
+            <h1 className="text-4xl sm:text-6xl font-black text-white uppercase tracking-tight font-['Manrope']">
+              {movie.title}
+            </h1>
+
+            {movie.tagline && (
+              <p className="text-lg text-[#FCFC65] font-semibold italic">"{movie.tagline}"</p>
             )}
+
+            <div className="flex flex-wrap items-center gap-6 text-xs text-[#9797AA] font-semibold">
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-[#FCFC65]" />
+                <span>{movie.durationMins || 148} Minutes</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-[#FCFC65]" />
+                <span>{movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : 2026} Release</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 2. SUMMARY & CTA BUTTONS */}
+      {/* Trailer Video Player Modal */}
+      {isPlayingTrailer && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="relative w-full max-w-4xl aspect-video rounded-3xl overflow-hidden border border-[#FCFC65]/40 shadow-2xl bg-black">
+            <button
+              onClick={() => setIsPlayingTrailer(false)}
+              className="absolute top-4 right-4 z-20 p-2.5 rounded-full bg-black/70 hover:bg-[#FCFC65] hover:text-black text-white transition-all"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <iframe
+              src={trailerEmbedUrl}
+              title="Official Trailer"
+              className="w-full h-full border-0"
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 2. SYNOPSIS & ACTION SUMMARY */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           <div className="lg:col-span-8 space-y-6">
-            <h2 className="text-2xl font-bold text-white uppercase font-['Manrope']">Summary</h2>
+            <h2 className="text-2xl font-bold text-white uppercase font-['Manrope']">Movie Synopsis</h2>
             <p className="text-base text-[#E0E0E4] leading-relaxed">
-              {movie.description || "Experience the cinematic spectacle on the big screen."}
+              {movie.description || movie.synopsis}
             </p>
 
-            <div className="grid grid-cols-2 gap-6 pt-6 border-t border-[#1A1A1F] text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-[#1A1A1F]">
               <div>
                 <span className="text-[#9797AA] block text-sm font-semibold mb-1">Director</span>
-                <span className="text-white font-bold text-base">{movie.director || "Renowned Director"}</span>
+                <span className="text-white font-bold text-base">{movie.director || "Denis Villeneuve"}</span>
               </div>
               <div>
                 <span className="text-[#9797AA] block text-sm font-semibold mb-1">Genres & Language</span>
@@ -163,7 +227,6 @@ export default function MovieDetailsPage({
             </div>
           </div>
 
-          {/* Action CTAs */}
           <div className="lg:col-span-4 space-y-4 bg-[#141418] p-8 rounded-2xl border border-[#1A1A1F] shadow-2xl">
             <Link
               href={`/showtimes?movieId=${movie.id}`}
@@ -195,15 +258,21 @@ export default function MovieDetailsPage({
         </div>
       </section>
 
-      {/* 3. REAL TMDB CAST SECTION */}
+      {/* 3. REAL TMDB CAST SECTION WITH INTERACTIVE VIEW ALL TOGGLE */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="flex items-center justify-between border-b border-[#1A1A1F] pb-4">
-          <h2 className="text-2xl font-bold text-white uppercase font-['Manrope']">Cast & Actors (TMDB Verified)</h2>
-          <span className="text-xs font-bold text-[#FCFC65] cursor-pointer hover:underline">View All &gt;</span>
+          <h2 className="text-2xl font-bold text-white uppercase font-['Manrope']">Cast & Actors ({castList.length} Members)</h2>
+          <button
+            onClick={() => setShowAllCast(!showAllCast)}
+            className="text-xs font-bold text-[#FCFC65] hover:underline flex items-center gap-1 uppercase tracking-wider"
+          >
+            <span>{showAllCast ? "Show Less" : `View All (${castList.length})`}</span>
+            {showAllCast ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
-          {castList.map((actor: any, idx: number) => (
+          {displayedCast.map((actor: any, idx: number) => (
             <div key={idx} className="bg-[#141418] rounded-xl overflow-hidden border border-[#1A1A1F] p-3 space-y-3 hover:border-[#FCFC65]/40 transition-all">
               <div className="aspect-square rounded-lg overflow-hidden bg-black">
                 <img src={actor.img} alt={actor.name} className="w-full h-full object-cover" />
@@ -217,18 +286,24 @@ export default function MovieDetailsPage({
         </div>
       </section>
 
-      {/* 4. USER REVIEWS & RATINGS BREAKDOWN */}
+      {/* 4. USER REVIEWS & RATINGS WITH INTERACTIVE VIEW ALL TOGGLE */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <div className="flex items-center justify-between border-b border-[#1A1A1F] pb-4">
           <h2 className="text-2xl font-bold text-white uppercase font-['Manrope']">User Reviews & Score</h2>
-          <span className="text-xs font-bold text-[#FCFC65] cursor-pointer hover:underline">View All &gt;</span>
+          <button
+            onClick={() => setShowAllReviews(!showAllReviews)}
+            className="text-xs font-bold text-[#FCFC65] hover:underline flex items-center gap-1 uppercase tracking-wider"
+          >
+            <span>{showAllReviews ? "Show Less" : `View All (${reviewsList.length})`}</span>
+            {showAllReviews ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
         </div>
 
         {/* Rating Breakdown Card */}
         <div className="bg-[#141418] border border-[#1A1A1F] rounded-2xl p-8 grid grid-cols-1 md:grid-cols-3 gap-8 items-center shadow-2xl">
           <div className="flex items-center gap-6">
             <div className="w-20 h-20 rounded-2xl bg-[#FCFC65] text-[#010108] font-black text-4xl flex items-center justify-center shadow-lg shadow-[#FCFC65]/20">
-              {movie.rating ? movie.rating.toFixed(1) : "8.5"}
+              {movie.rating ? movie.rating.toFixed(1) : "8.8"}
             </div>
             <div>
               <div className="text-xs text-[#9797AA] uppercase font-bold">TMDB & User Score</div>
@@ -265,7 +340,7 @@ export default function MovieDetailsPage({
 
         {/* Review Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {reviewsList.map((rev: any, idx: number) => (
+          {displayedReviews.map((rev: any, idx: number) => (
             <div key={idx} className="bg-[#141418] border border-[#1A1A1F] rounded-xl p-6 space-y-4 hover:border-[#FCFC65]/40 transition-all">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">

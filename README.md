@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ticketor Cineplex Pro
+
+A movie ticketing web app: browse now-showing and upcoming movies, view details/cast/
+reviews, pick a showtime and seats, add food & drink, and check out. Includes an admin
+panel for managing movies, cinemas, showtimes, and promotions.
+
+See [`AGENT.md`](./AGENT.md) for the full architecture, design principles, and the
+step-by-step (TDD) build plan.
+
+## Tech Stack
+
+Next.js 14+ (App Router) · TypeScript · Tailwind CSS · Prisma + PostgreSQL ·
+Auth.js (NextAuth) · Stripe · Resend · Vitest + Playwright
+
+## Features
+
+- **Browse without an account** — movies, showtimes, cinemas, reviews, seat
+  selection, and building a food/drink cart are all open to anonymous visitors.
+- **Login required only at final purchase** — hitting "Pay" while signed out shows a
+  login/signup prompt instead of blocking browsing.
+- **No re-selecting after login** — the in-progress booking (showtime, seats, ticket
+  quantities, food cart) is preserved across the login redirect.
+- **Admin panel** (`/admin`) — requires login + admin role; manage movies, cinemas,
+  screens/seat layouts, showtimes, and promo codes, plus a sales dashboard.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
+cp .env.example .env   # fill in DATABASE_URL, NEXTAUTH_SECRET, STRIPE_SECRET_KEY,
+                        # STRIPE_WEBHOOK_SECRET, RESEND_API_KEY
+npx prisma migrate dev
+npx prisma db seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Testing
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm test            # unit + integration (Vitest)
+npm run test:e2e     # end-to-end (Playwright)
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Structure
 
-## Learn More
+See `AGENT.md` §1.3 for the full folder layout (`src/app`, `src/features`,
+`src/components`, `prisma`, `tests/e2e`).
 
-To learn more about Next.js, take a look at the following resources:
+## Status
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See `AGENT.md` §6 for the current build progress against the step-by-step plan.
