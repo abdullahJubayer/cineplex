@@ -1,0 +1,132 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  name         String?
+  password     String
+  isVerified   Boolean   @default(false)
+  avatarUrl    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  bookings     Booking[]
+  reviews      Review[]
+}
+
+model Movie {
+  id           String     @id @default(uuid())
+  title        String
+  tagline      String?
+  description  String
+  posterUrl    String
+  bannerUrl    String
+  durationMins Int
+  rating       Float      @default(0.0)
+  ageRating    String
+  releaseDate  DateTime
+  genres       String
+  director     String
+  cast         String
+  language     String     @default("English")
+  status       String     @default("NOW_SHOWING")
+  watchUrl     String?    // Legal streaming/watch link (e.g. Netflix, Prime, Apple TV, JustWatch)
+  showtimes    Showtime[]
+  reviews      Review[]
+  createdAt    DateTime   @default(now())
+}
+
+model Cinema {
+  id        String     @id @default(uuid())
+  name      String
+  location  String
+  address   String
+  city      String
+  halls     Hall[]
+  showtimes Showtime[]
+}
+
+model Hall {
+  id         String     @id @default(uuid())
+  name       String
+  cinemaId   String
+  cinema     Cinema     @relation(fields: [cinemaId], references: [id], onDelete: Cascade)
+  totalSeats Int        @default(80)
+  showtimes  Showtime[]
+  seats      Seat[]
+}
+
+model Seat {
+  id        String    @id @default(uuid())
+  hallId    String
+  hall      Hall      @relation(fields: [hallId], references: [id], onDelete: Cascade)
+  row       String
+  number    Int
+  type      String    @default("STANDARD")
+  price     Float     @default(12.0)
+}
+
+model Showtime {
+  id        String    @id @default(uuid())
+  movieId   String
+  movie     Movie     @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  cinemaId  String
+  cinema    Cinema    @relation(fields: [cinemaId], references: [id], onDelete: Cascade)
+  hallId    String
+  hall      Hall      @relation(fields: [hallId], references: [id], onDelete: Cascade)
+  startTime DateTime
+  format    String    @default("2D")
+  basePrice Float     @default(12.0)
+  bookings  Booking[]
+}
+
+model Booking {
+  id          String        @id @default(uuid())
+  bookingNo   String        @unique
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  showtimeId  String
+  showtime    Showtime      @relation(fields: [showtimeId], references: [id], onDelete: Cascade)
+  seatsJson   String
+  totalPrice  Float
+  status      String        @default("CONFIRMED")
+  qrCodeUrl   String?
+  createdAt   DateTime      @default(now())
+  foodItems   BookingFood[]
+}
+
+model FoodItem {
+  id          String        @id @default(uuid())
+  name        String
+  description String
+  price       Float
+  category    String
+  imageUrl    String
+  bookings    BookingFood[]
+}
+
+model BookingFood {
+  id         String   @id @default(uuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  foodItemId String
+  foodItem   FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+  quantity   Int
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  movieId   String
+  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Float
+  comment   String
+  createdAt DateTime @default(now())
+}
