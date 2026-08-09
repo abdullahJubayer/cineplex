@@ -130,3 +130,14 @@ model Review {
   comment   String
   createdAt DateTime @default(now())
 }
+
+model PromoCode {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  discountType String   @default("PERCENTAGE")
+  amount       Float
+  usageLimit   Int      @default(100)
+  usedCount    Int      @default(0)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+}

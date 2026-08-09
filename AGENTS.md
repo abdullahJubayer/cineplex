@@ -474,11 +474,11 @@ defined in 1.2. Run `npm test` and `npm run test:e2e` as noted.
 - [x] 3.2 Promo code redemption
 - [x] 3.3 Ticket QR code
 - [x] 3.4 Email confirmation
-- [ ] 4.1 Cinema/screen/seat-layout admin UI
-- [ ] 4.2 Showtime scheduling
-- [ ] 4.3 Sales dashboard
-- [ ] 4.4 Promo code management UI
-- [ ] 4.5 Role-based access
+- [x] 4.1 Cinema/screen/seat-layout admin UI
+- [x] 4.2 Showtime scheduling
+- [x] 4.3 Sales dashboard
+- [x] 4.4 Promo code management UI
+- [x] 4.5 Role-based access
 
 ---
 

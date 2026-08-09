@@ -2,8 +2,16 @@
 
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function Footer() {
+  const pathname = usePathname();
+
+  // Suppress user footer on admin panel routes
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
+
   return (
     <footer className="bg-[#010108] border-t border-[#1A1A1F] text-[#9797AA] text-sm relative overflow-hidden">
       {/* Footer Main Section */}
