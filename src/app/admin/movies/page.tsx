@@ -77,7 +77,7 @@ export default function AdminMoviesPage() {
             Movie Catalog Management
           </h1>
           <p className="text-sm text-[#9797AA] mt-1">
-            Add, update, and publish movie titles, posters, genres, and release statuses.
+            Add, update, and publish movie titles manually or chat with our floating TMDB AI Assistant.
           </p>
         </div>
 
@@ -86,7 +86,7 @@ export default function AdminMoviesPage() {
           className="px-6 py-3 rounded-md bg-[#FCFC65] hover:bg-[#ecec50] text-[#010108] font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 self-start sm:self-auto"
         >
           <Plus className="w-4 h-4 text-[#010108]" />
-          <span>Add New Movie</span>
+          <span>Manual Add Movie</span>
         </button>
       </div>
 
@@ -113,7 +113,7 @@ export default function AdminMoviesPage() {
               <div className="p-4 space-y-2">
                 <h3 className="text-base font-bold text-white line-clamp-1 font-['Manrope']">{m.title}</h3>
                 <div className="flex items-center justify-between text-xs text-[#9797AA]">
-                  <span>{m.genre}</span>
+                  <span>{m.genre || m.genres}</span>
                   <span>{m.durationMins || m.durationMin}m</span>
                 </div>
               </div>

@@ -448,6 +448,13 @@ defined in 1.2. Run `npm test` and `npm run test:e2e` as noted.
 - **4.4** Promo code management UI — integration tests for CRUD + validation.
 - **4.5** Role-based access — integration tests confirming non-admins get 403 on all
   `/admin` routes and `/api/admin/*`, enforced server-side (not just hidden in UI).
+- **4.6** Full Autonomous Admin AI Assistant Chat Agent (`src/components/AdminAiChat.tsx` &
+  `/api/admin/ai-agent`) — natural language operating chat interface connected to TMDB API
+  (`TMDB_API_KEY`) and Prisma DB allowing admins to:
+  1. Search, discover, and automatically import movies from TMDB into the database.
+  2. Schedule movie showtime sessions with automated overlap conflict validation or interactive slot-filling forms.
+  3. Generate new cinema venue locations and custom seat matrix layouts (`REGULAR`, `PREMIUM`, `VIP`).
+  4. Create promotional discount codes (`PERCENTAGE` / `FIXED`) with usage limits and expiry dates.
 
 ---
 
@@ -479,6 +486,7 @@ defined in 1.2. Run `npm test` and `npm run test:e2e` as noted.
 - [x] 4.3 Sales dashboard
 - [x] 4.4 Promo code management UI
 - [x] 4.5 Role-based access
+- [x] 4.6 TMDB AI Admin Assistant Chat Agent
 
 ---
 

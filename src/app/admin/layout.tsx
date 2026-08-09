@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   Tag,
 } from "lucide-react";
+import { AdminAiChat } from "@/components/AdminAiChat";
 
 export default function AdminLayout({
   children,
@@ -31,9 +32,9 @@ export default function AdminLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-[#010108] text-[#E0E0E4] font-sans flex flex-col">
+    <div className="min-h-screen bg-[#010108] text-[#E0E0E4] font-sans flex flex-col relative">
       {/* Admin Navbar */}
-      <header className="bg-[#141418] border-b border-[#1A1A1F] sticky top-0 z-50">
+      <header className="bg-[#141418] border-b border-[#1A1A1F] sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2 group">
@@ -86,9 +87,12 @@ export default function AdminLayout({
       </header>
 
       {/* Main Admin Body */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full pb-28">
         {children}
       </main>
+
+      {/* Floating Admin AI Assistant Window (Available across all admin pages) */}
+      <AdminAiChat isFloating={true} />
     </div>
   );
 }

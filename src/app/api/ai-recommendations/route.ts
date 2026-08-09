@@ -125,7 +125,7 @@ async function executeTool(name: string, args: any) {
       movieTitle: showtime.movie.title,
       totalSeats: showtime.hall.totalSeats,
       bookedSeats: Array.from(bookedSeats),
-      availableSeats: availableSeats.slice(0, 15), // sample top available
+      availableSeats: availableSeats.slice(0, 15),
     };
   }
 
@@ -175,7 +175,7 @@ async function executeTool(name: string, args: any) {
 export async function POST(request: Request) {
   try {
     const { messages, preferences: userPref } = await request.json();
-    const apiKey = process.env.OPEN_ROUTER_API_KEY;
+    const apiKey = process.env.OPEN_ROUTER_API_KEY?.replace(/['"\s]/g, "").trim();
 
     const movies = await prisma.movie.findMany();
 
@@ -189,7 +189,7 @@ You have tool execution capabilities (MCP tools) to query live database informat
 When recommending movies, always recommend strictly from the cineplex database catalog.
 Always be friendly, concise, and helpful.`;
 
-    if (apiKey && apiKey.trim() !== "") {
+    if (apiKey && apiKey !== "") {
       try {
         const conversationMessages = [
           { role: "system", content: systemPrompt },
@@ -199,13 +199,14 @@ Always be friendly, concise, and helpful.`;
         let response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${apiKey.trim()}`,
+            "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
             "HTTP-Referer": "http://localhost:3000",
             "X-Title": "Ticketor Cineplex Pro",
           },
           body: JSON.stringify({
             model: "openai/gpt-4o-mini",
+            max_tokens: 1000,
             tools,
             messages: conversationMessages,
           }),
@@ -233,13 +234,14 @@ Always be friendly, concise, and helpful.`;
           response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
-              "Authorization": `Bearer ${apiKey.trim()}`,
+              "Authorization": `Bearer ${apiKey}`,
               "Content-Type": "application/json",
               "HTTP-Referer": "http://localhost:3000",
               "X-Title": "Ticketor Cineplex Pro",
             },
             body: JSON.stringify({
               model: "openai/gpt-4o-mini",
+              max_tokens: 1000,
               messages: conversationMessages,
             }),
           });
@@ -249,7 +251,6 @@ Always be friendly, concise, and helpful.`;
         }
 
         if (choice?.message?.content) {
-          // Hydrate recommendations based on conversation context
           const recommendations = movies.slice(0, 3).map((m) => ({
             id: m.id,
             title: m.title,
@@ -273,7 +274,7 @@ Always be friendly, concise, and helpful.`;
       }
     }
 
-    // Local engine handling tool queries if API key is inactive
+    // Local engine fallback if API key is inactive or offline
     const lastMsgLower = (messages[messages.length - 1]?.content || "").toLowerCase();
     let replyText = "";
 
