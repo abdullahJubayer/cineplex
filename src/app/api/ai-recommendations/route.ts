@@ -174,12 +174,12 @@ async function executeTool(name: string, args: any) {
 
 export async function POST(request: Request) {
   try {
-    const { messages, preferences: userPref } = await request.json();
+    const { messages, preferences: userPref, summary: userSummary } = await request.json();
     const apiKey = process.env.OPEN_ROUTER_API_KEY?.replace(/['"\s]/g, "").trim();
 
     const movies = await prisma.movie.findMany();
 
-    const systemPrompt = `You are the official AI Cinema Assistant for Ticketor Cineplex.
+    let systemPrompt = `You are the official AI Cinema Assistant for Ticketor Cineplex.
 You have tool execution capabilities (MCP tools) to query live database information and take actions on behalf of the user:
 - get_now_showing_movies(): Fetch currently playing movies in theaters.
 - get_movie_showtimes(movieId?): Fetch live showtimes, formats, and cinema locations.
@@ -188,6 +188,10 @@ You have tool execution capabilities (MCP tools) to query live database informat
 
 When recommending movies, always recommend strictly from the cineplex database catalog.
 Always be friendly, concise, and helpful.`;
+
+    if (userSummary && typeof userSummary === "string" && userSummary.trim() !== "") {
+      systemPrompt += `\n\nUser's Saved AI Taste Profile & Preferences Summary:\n"${userSummary}"`;
+    }
 
     if (apiKey && apiKey !== "") {
       try {

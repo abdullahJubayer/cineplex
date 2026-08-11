@@ -91,59 +91,52 @@ async function main() {
     },
   });
 
-  // Create Seats for Hall 1
+  // Create Seats for Hall 1 & Hall 2
   const rows = ["A", "B", "C", "D", "E", "F"];
-  for (const r of rows) {
-    for (let num = 1; num <= 12; num++) {
-      const type = r === "F" ? "VIP" : r === "E" ? "COUPLE" : "STANDARD";
-      const price = type === "VIP" ? 22 : type === "COUPLE" ? 18 : 14;
-      await prisma.seat.create({
-        data: {
-          hallId: hall1.id,
-          row: r,
-          number: num,
-          type,
-          price,
-        },
-      });
+  for (const hallId of [hall1.id, hall2.id]) {
+    for (const r of rows) {
+      for (let num = 1; num <= 12; num++) {
+        const type = r === "F" ? "VIP" : r === "E" ? "COUPLE" : "STANDARD";
+        const price = type === "VIP" ? 22 : type === "COUPLE" ? 18 : 14;
+        await prisma.seat.create({
+          data: {
+            hallId,
+            row: r,
+            number: num,
+            type,
+            price,
+          },
+        });
+      }
     }
   }
 
-  console.log("⏰ Creating showtime sessions for TMDB movies...");
-  if (importedMovies.length > 0) {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(18, 0, 0, 0);
+  console.log("⏰ Creating showtime sessions for ALL imported movies...");
+  const formats = ["IMAX 3D Laser", "Dolby Atmos", "Digital 3D", "Standard"];
+  const halls = [hall1, hall2];
 
-    const nextDay = new Date();
-    nextDay.setDate(nextDay.getDate() + 2);
-    nextDay.setHours(20, 30, 0, 0);
+  for (let idx = 0; idx < importedMovies.length; idx++) {
+    const movie = importedMovies[idx];
+    const targetHall = halls[idx % halls.length];
+    const targetCinemaId = targetHall.cinemaId;
+
+    const startTime = new Date();
+    startTime.setDate(startTime.getDate() + (idx % 3) + 1);
+    startTime.setHours(14 + (idx * 2) % 8, 30, 0, 0);
 
     await prisma.showtime.create({
       data: {
-        id: "st_1",
-        movieId: importedMovies[0].id,
-        cinemaId: cinema1.id,
-        hallId: hall1.id,
-        startTime: tomorrow,
-        format: "IMAX 3D Laser",
-        basePrice: 18.5,
+        id: `st_seed_${movie.id.slice(0, 8)}`,
+        movieId: movie.id,
+        cinemaId: targetCinemaId,
+        hallId: targetHall.id,
+        startTime,
+        format: formats[idx % formats.length],
+        basePrice: 16.5 + (idx % 3) * 2,
       },
     });
 
-    if (importedMovies[1]) {
-      await prisma.showtime.create({
-        data: {
-          id: "st_2",
-          movieId: importedMovies[1].id,
-          cinemaId: cinema2.id,
-          hallId: hall2.id,
-          startTime: nextDay,
-          format: "Dolby Atmos",
-          basePrice: 16.5,
-        },
-      });
-    }
+    console.log(`  ✓ Scheduled showtime for "${movie.title}" on ${startTime.toLocaleString()}`);
   }
 
   console.log("🍿 Creating food menu items & promo codes...");
@@ -178,7 +171,7 @@ async function main() {
     },
   });
 
-  console.log("🎉 Database refreshed cleanly with 5 real TMDB movies!");
+  console.log("🎉 Database refreshed cleanly with showtimes for ALL 5 TMDB movies!");
 }
 
 main()

@@ -140,34 +140,63 @@ export async function importTmdbMovie(tmdbId: number, customStatus: string = "NO
     : "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1";
 
   // Check if movie already exists in DB by title
-  const existing = await prisma.movie.findFirst({
+  let movie = await prisma.movie.findFirst({
     where: { title: { equals: details.title } },
   });
 
-  if (existing) {
-    return { movie: existing, alreadyExisted: true };
+  let alreadyExisted = false;
+
+  if (movie) {
+    alreadyExisted = true;
+  } else {
+    // Create new Movie in Prisma DB
+    movie = await prisma.movie.create({
+      data: {
+        title: details.title,
+        tagline: details.tagline || details.overview?.slice(0, 80) || "Experience it in theaters",
+        description: details.overview || "No synopsis available.",
+        posterUrl,
+        bannerUrl,
+        durationMins: details.runtime || 120,
+        rating: details.vote_average ? Number(details.vote_average.toFixed(1)) : 8.5,
+        ageRating: details.adult ? "R" : "PG-13",
+        releaseDate: details.release_date ? new Date(details.release_date) : new Date(),
+        genres,
+        director,
+        cast: JSON.stringify(castArray),
+        watchUrl: trailerUrl,
+        language: details.original_language?.toUpperCase() || "ENGLISH",
+        status: customStatus,
+      },
+    });
   }
 
-  // Create new Movie in Prisma DB
-  const movie = await prisma.movie.create({
-    data: {
-      title: details.title,
-      tagline: details.tagline || details.overview?.slice(0, 80) || "Experience it in theaters",
-      description: details.overview || "No synopsis available.",
-      posterUrl,
-      bannerUrl,
-      durationMins: details.runtime || 120,
-      rating: details.vote_average ? Number(details.vote_average.toFixed(1)) : 8.5,
-      ageRating: details.adult ? "R" : "PG-13",
-      releaseDate: details.release_date ? new Date(details.release_date) : new Date(),
-      genres,
-      director,
-      cast: JSON.stringify(castArray),
-      watchUrl: trailerUrl,
-      language: details.original_language?.toUpperCase() || "ENGLISH",
-      status: customStatus,
-    },
-  });
+  // Ensure movie has at least 1 showtime session if NOW_SHOWING
+  if (movie.status === "NOW_SHOWING") {
+    const existingShowtime = await prisma.showtime.findFirst({
+      where: { movieId: movie.id },
+    });
 
-  return { movie, alreadyExisted: false };
+    if (!existingShowtime) {
+      const cinema = await prisma.cinema.findFirst({ include: { halls: true } });
+      if (cinema && cinema.halls.length > 0) {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(19, 30, 0, 0);
+
+        await prisma.showtime.create({
+          data: {
+            movieId: movie.id,
+            cinemaId: cinema.id,
+            hallId: cinema.halls[0].id,
+            startTime: tomorrow,
+            format: "IMAX 3D Laser",
+            basePrice: 17.5,
+          },
+        });
+      }
+    }
+  }
+
+  return { movie, alreadyExisted };
 }

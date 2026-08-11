@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Sparkles,
   Send,
@@ -19,6 +19,7 @@ import {
   Minimize2,
   Maximize2,
   MessageSquare,
+  RotateCcw,
 } from "lucide-react";
 
 export function AdminAiChat({
@@ -31,13 +32,13 @@ export function AdminAiChat({
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const [messages, setMessages] = useState<any[]>([
-    {
-      id: "init",
-      sender: "ai",
-      text: "👋 Hi Admin! I'm your Full Ticketor Autonomous Operating Agent. Ask me to perform any admin action:\n\n• 🎬 Add movies from TMDB\n• ⏰ Schedule showtimes & validate overlaps\n• 🏛️ Generate cinemas & seat layouts\n• 🏷️ Create promo codes",
-    },
-  ]);
+  const initialWelcomeMsg = {
+    id: "init",
+    sender: "ai",
+    text: "👋 Hi Admin! I'm your Full Ticketor Autonomous Operating Agent. Ask me to perform any admin action:\n\n• 🎬 Add movies from TMDB\n• ⏰ Schedule showtimes & validate overlaps\n• 🏛️ Generate cinemas & seat layouts\n• 🏷️ Create promo codes",
+  };
+
+  const [messages, setMessages] = useState<any[]>([initialWelcomeMsg]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [importingId, setImportingId] = useState<number | null>(null);
@@ -47,6 +48,37 @@ export function AdminAiChat({
   const [selectedCinemaId, setSelectedCinemaId] = useState("");
   const [showtimeDate, setShowtimeDate] = useState("2026-08-18");
   const [showtimeTime, setShowtimeTime] = useState("19:30");
+
+  // Load Admin Chat from Session Storage
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem("ticketor_admin_chat_messages");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  // Save Admin Chat to Session Storage on change
+  useEffect(() => {
+    try {
+      if (messages.length > 0) {
+        sessionStorage.setItem("ticketor_admin_chat_messages", JSON.stringify(messages));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [messages]);
+
+  const handleClearSession = () => {
+    setMessages([initialWelcomeMsg]);
+    sessionStorage.removeItem("ticketor_admin_chat_messages");
+  };
 
   const quickPrompts = [
     { label: "🎬 Add Oppenheimer", query: "Add Oppenheimer to catalog" },
@@ -387,12 +419,20 @@ export function AdminAiChat({
               <h3 className="text-lg font-bold text-white font-['Manrope'] flex items-center gap-2">
                 <span>Full Admin Autonomous AI Assistant</span>
                 <span className="px-2 py-0.5 rounded bg-[#FCFC65] text-[#010108] text-[10px] font-black uppercase">
-                  Active Agent
+                  Session Active
                 </span>
               </h3>
               <p className="text-xs text-[#9797AA]">Movies, Showtimes, Seat Layouts, and Promo Codes</p>
             </div>
           </div>
+          <button
+            onClick={handleClearSession}
+            className="p-2 rounded-lg bg-[#010108] border border-[#1A1A1F] text-[#9797AA] hover:text-white text-xs font-bold flex items-center gap-1 transition-colors"
+            title="Reset Session"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset</span>
+          </button>
         </div>
         {contentUI}
       </div>
@@ -435,12 +475,19 @@ export function AdminAiChat({
                 </span>
                 <div className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span>Autonomous Mode Active</span>
+                  <span>Session Restored</span>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-1">
+              <button
+                onClick={handleClearSession}
+                className="p-1.5 rounded text-[#9797AA] hover:text-white transition-colors"
+                title="Reset Session Chat"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="p-1.5 rounded text-[#9797AA] hover:text-white transition-colors"
@@ -450,7 +497,7 @@ export function AdminAiChat({
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded text-[#9797AA] hover:text-white transition-colors"
+                className="p-1.5 rounded text-[#9797AA] hover:text-[#FCFC65] transition-colors"
                 title="Close"
               >
                 <X className="w-4 h-4" />

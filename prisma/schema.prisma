@@ -8,16 +8,17 @@ generator client {
 }
 
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  name         String?
-  password     String
-  isVerified   Boolean   @default(false)
-  avatarUrl    String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  bookings     Booking[]
-  reviews      Review[]
+  id            String        @id @default(uuid())
+  email         String        @unique
+  name          String?
+  password      String
+  isVerified    Boolean       @default(false)
+  avatarUrl     String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  bookings      Booking[]
+  reviews       Review[]
+  chatSummaries ChatSummary[]
 }
 
 model Movie {
@@ -36,7 +37,7 @@ model Movie {
   cast         String
   language     String     @default("English")
   status       String     @default("NOW_SHOWING")
-  watchUrl     String?    // Legal streaming/watch link (e.g. Netflix, Prime, Apple TV, JustWatch)
+  watchUrl     String?
   showtimes    Showtime[]
   reviews      Review[]
   createdAt    DateTime   @default(now())
@@ -140,4 +141,15 @@ model PromoCode {
   usedCount    Int      @default(0)
   expiresAt    DateTime
   createdAt    DateTime @default(now())
+}
+
+model ChatSummary {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  summary            String
+  rawMessages        String
+  rawRecommendations String?  @default("[]")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
