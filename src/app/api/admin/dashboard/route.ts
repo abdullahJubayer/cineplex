@@ -24,12 +24,12 @@ export async function GET(req: Request) {
       include: { halls: { include: { seats: true } } },
     });
     const showtimes = await prisma.showtime.findMany({
-      include: { hall: { include: { seats: true } } },
+      include: { hall: { include: { seats: true } }, movie: true },
     });
 
     // 1. Pure Real Database Revenue Metrics
     const totalRevenue = bookings.reduce((sum: number, b: any) => sum + (b.totalPrice || 0), 0);
-    const lastMonthRevenue = 0; // Strictly 0 until real last month bookings exist
+    const lastMonthRevenue = 0;
     const currentVsLastMonthPct = lastMonthRevenue > 0
       ? Number((((totalRevenue - lastMonthRevenue) / lastMonthRevenue) * 100).toFixed(1))
       : 0;
@@ -113,8 +113,10 @@ export async function GET(req: Request) {
       projectedRevenueGain: "+$2,500",
     }));
 
-    // 4. Latest TMDB Upcoming suggestions
-    const upcomingMovieSuggestions = [
+    // 4. Dynamic Upcoming Blockbusters Pool (Filter out movies already in DB catalog/showtimes)
+    const existingMovieTitles = movies.map((m: any) => m.title.toLowerCase());
+
+    const candidateUpcomingPool = [
       {
         id: "up-1",
         tmdbId: 558449,
@@ -135,7 +137,55 @@ export async function GET(req: Request) {
         reason: "High 3D and IMAX pre-release demand.",
         posterUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80",
       },
+      {
+        id: "up-3",
+        tmdbId: 402431,
+        title: "Wicked",
+        releaseDate: "Nov 2024",
+        genre: "Musical / Fantasy",
+        hypeLevel: "🌟 Huge Fan Base",
+        reason: "Breakout musical hit with high advance box office tracking.",
+        posterUrl: "https://image.tmdb.org/t/p/w500/3w84h1Jz2X9vXv5p8hJ122X.jpg",
+      },
+      {
+        id: "up-4",
+        tmdbId: 573435,
+        title: "Mission: Impossible - Final Reckoning",
+        releaseDate: "May 2025",
+        genre: "Action / Thriller",
+        hypeLevel: "🔥 Action Spectacle",
+        reason: "Tom Cruise stunt thriller expecting full IMAX screen bookings.",
+        posterUrl: "https://image.tmdb.org/t/p/w500/NNxYkU70HPurnNCSiCjYAmacwm.jpg",
+      },
+      {
+        id: "up-5",
+        tmdbId: 1061474,
+        title: "Superman",
+        releaseDate: "Jul 2025",
+        genre: "Action / Sci-Fi",
+        hypeLevel: "⚡ DC Universe Lead",
+        reason: "James Gunn DCU reboot with immense social media buzz.",
+        posterUrl: "https://image.tmdb.org/t/p/w500/d8R2g8q86S8p.jpg",
+      },
+      {
+        id: "up-6",
+        tmdbId: 822119,
+        title: "Captain America: Brave New World",
+        releaseDate: "Feb 2025",
+        genre: "Action / Adventure",
+        hypeLevel: "🛡️ Marvel Franchise",
+        reason: "Anthony Mackie leading Marvel Studios major tentpole release.",
+        posterUrl: "https://image.tmdb.org/t/p/w500/pz5VnQW4p.jpg",
+      },
     ];
+
+    // Filter out candidates already present in DB
+    const upcomingMovieSuggestions = candidateUpcomingPool
+      .filter((cand) => {
+        const candTitle = cand.title.toLowerCase();
+        return !existingMovieTitles.some((t) => t.includes(candTitle) || candTitle.includes(t));
+      })
+      .slice(0, 2);
 
     // 5. Revenue by Movie for BarChart (Strictly real DB values)
     const revenueByMovie = movies.map((m: any) => ({

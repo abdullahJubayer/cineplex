@@ -31,8 +31,14 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { movieId, cinemaId, hallId, startTime, format = "Digital 3D", basePrice = 16.5 } = body;
 
-    if (!movieId || !cinemaId || !startTime) {
-      return NextResponse.json({ error: "Missing required showtime details" }, { status: 400 });
+    let targetCinemaId = cinemaId;
+    if (!targetCinemaId) {
+      const firstCinema = await prisma.cinema.findFirst();
+      targetCinemaId = firstCinema?.id;
+    }
+
+    if (!movieId || !targetCinemaId || !startTime) {
+      return NextResponse.json({ error: "Missing required showtime details (movieId, cinemaId, or startTime)" }, { status: 400 });
     }
 
     const start = new Date(startTime);
@@ -43,7 +49,7 @@ export async function POST(req: Request) {
     // Fetch movie duration to calculate end time
     const movie = await prisma.movie.findUnique({ where: { id: movieId } });
     if (!movie) {
-      return NextResponse.json({ error: "Movie not found" }, { status: 404 });
+      return NextResponse.json({ error: "Movie not found in catalog" }, { status: 404 });
     }
 
     const durationMins = movie.durationMins || 120;
@@ -51,9 +57,9 @@ export async function POST(req: Request) {
     const end = new Date(start.getTime() + (durationMins + cleanupBufferMins) * 60 * 1000);
 
     // Overlap Validation Check: Check if another showtime overlaps on the same hall/cinema
-    const targetHallId = hallId || (await prisma.hall.findFirst({ where: { cinemaId } }))?.id;
+    const targetHallId = hallId || (await prisma.hall.findFirst({ where: { cinemaId: targetCinemaId } }))?.id;
     if (!targetHallId) {
-      return NextResponse.json({ error: "No screen/hall available for cinema" }, { status: 400 });
+      return NextResponse.json({ error: "No screen/hall available for selected cinema" }, { status: 400 });
     }
 
     const existingShowtimes = await prisma.showtime.findMany({
@@ -85,7 +91,7 @@ export async function POST(req: Request) {
     const newShowtime = await prisma.showtime.create({
       data: {
         movieId,
-        cinemaId,
+        cinemaId: targetCinemaId,
         hallId: targetHallId,
         startTime: start,
         format,

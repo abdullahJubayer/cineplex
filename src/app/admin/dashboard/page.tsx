@@ -97,9 +97,13 @@ export default function AdminDashboardPage() {
         }),
       });
 
+      const json = await res.json();
+
       if (res.ok) {
         alert(`✅ Quick Scheduled session for "${sug.title}" on ${tomorrow.toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" })}!`);
         fetchDashboardData();
+      } else {
+        alert(`⚠️ ${json.error || "Failed to schedule showtime"}`);
       }
     } catch (e) {
       console.error(e);
