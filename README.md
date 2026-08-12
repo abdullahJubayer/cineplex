@@ -123,7 +123,7 @@ cineplex-pro/
 2. Configure environment variables in `.env`:
    ```env
    DATABASE_URL="file:./dev.db"
-   TMDB_API_KEY="e092a18c6c92484738c9f41743d0f3a5"
+   TMDB_API_KEY="your tmdb api key"
    OPEN_ROUTER_API_KEY="your-openrouter-api-key"
    ```
 
@@ -166,6 +166,6 @@ This repository includes a pre-configured `render-build` script in `package.json
    - Start Command: `npm start`
 4. Set Environment Variables:
    - `DATABASE_URL`: Your Render PostgreSQL connection string
-   - `TMDB_API_KEY`: `e092a18c6c92484738c9f41743d0f3a5`
+   - `TMDB_API_KEY`: `Your TMDB API Key`
    - `OPEN_ROUTER_API_KEY`: Your OpenRouter API Key
    - `NODE_ENV`: `production`
