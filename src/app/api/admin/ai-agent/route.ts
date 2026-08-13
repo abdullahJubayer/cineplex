@@ -10,7 +10,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { message, action, tmdbId, draftData } = body;
+    const { message, action, tmdbId, draftData, history } = body;
 
     const lowerMsg = (message || "").toLowerCase().trim();
     const apiKey = process.env.OPEN_ROUTER_API_KEY?.replace(/['"\s]/g, "").trim();
@@ -31,37 +31,93 @@ export async function POST(req: Request) {
     }
 
     // =========================================================================
-    // ACTION 2: Create Showtime Session
+    // Fetch Catalog Context for Contextual Intelligence
     // =========================================================================
-    if (action === "create_showtime" || lowerMsg.includes("schedule") || lowerMsg.includes("showtime")) {
-      const movies = await prisma.movie.findMany();
-      const cinemas = await prisma.cinema.findMany({ include: { halls: true } });
+    const movies = await prisma.movie.findMany();
+    const cinemas = await prisma.cinema.findMany({ include: { halls: true } });
 
-      const targetMovieId = draftData?.movieId || movies.find((m) => lowerMsg.includes(m.title.toLowerCase()))?.id || movies[0]?.id;
-      const targetCinemaId = draftData?.cinemaId || cinemas.find((c) => lowerMsg.includes(c.name.toLowerCase()) || lowerMsg.includes(c.city.toLowerCase()))?.id || cinemas[0]?.id;
-      const format = draftData?.format || (lowerMsg.includes("imax") ? "IMAX 3D Laser" : lowerMsg.includes("3d") ? "Digital 3D" : "Standard");
+    // Check if the user is asking to schedule showtimes or add showtimes
+    const isScheduleIntent =
+      action === "create_showtime" ||
+      lowerMsg.includes("schedule") ||
+      lowerMsg.includes("showtime") ||
+      lowerMsg.includes("session") ||
+      lowerMsg.includes("evening") ||
+      lowerMsg.includes("morning") ||
+      lowerMsg.includes("afternoon") ||
+      lowerMsg.includes("pm") ||
+      lowerMsg.includes("am");
+
+    // =========================================================================
+    // ACTION 2: Create Showtime Session (With Context Preservation)
+    // =========================================================================
+    if (isScheduleIntent && !lowerMsg.startsWith("add ") && !lowerMsg.startsWith("search ") && !lowerMsg.startsWith("import ")) {
+      // Find movie referenced in history or current message
+      let targetMovie = draftData?.movieId
+        ? movies.find((m) => m.id === draftData.movieId)
+        : null;
+
+      if (!targetMovie) {
+        // Search current message first
+        targetMovie = movies.find((m) => lowerMsg.includes(m.title.toLowerCase()));
+      }
+
+      if (!targetMovie && Array.isArray(history)) {
+        // Search conversation history from recent to oldest for referenced movie
+        for (let i = history.length - 1; i >= 0; i--) {
+          const histText = (history[i]?.text || "").toLowerCase();
+          const found = movies.find((m) => histText.includes(m.title.toLowerCase()));
+          if (found) {
+            targetMovie = found;
+            break;
+          }
+        }
+      }
+
+      // If no movie match found in DB catalog, default to first catalog movie
+      if (!targetMovie) {
+        targetMovie = movies[0];
+      }
+
+      const targetCinemaId =
+        draftData?.cinemaId ||
+        cinemas.find((c) => lowerMsg.includes(c.name.toLowerCase()) || lowerMsg.includes(c.city.toLowerCase()))?.id ||
+        cinemas[0]?.id;
+
+      const format =
+        draftData?.format ||
+        (lowerMsg.includes("imax") ? "IMAX 3D Laser" : lowerMsg.includes("3d") ? "Digital 3D" : "Standard");
       const basePrice = Number(draftData?.basePrice || 16.5);
 
       let startTimeStr = draftData?.startTime;
       if (!startTimeStr) {
         const dateObj = new Date();
         dateObj.setDate(dateObj.getDate() + 1);
-        dateObj.setHours(19, 30, 0, 0);
+
+        // Adjust hours based on time slot keywords
+        if (lowerMsg.includes("evening") || lowerMsg.includes("night")) {
+          dateObj.setHours(19, 30, 0, 0);
+        } else if (lowerMsg.includes("morning")) {
+          dateObj.setHours(10, 30, 0, 0);
+        } else if (lowerMsg.includes("afternoon")) {
+          dateObj.setHours(14, 30, 0, 0);
+        } else {
+          dateObj.setHours(19, 30, 0, 0);
+        }
         startTimeStr = dateObj.toISOString();
       }
 
-      if (!draftData && (!lowerMsg.includes("at") && !lowerMsg.includes("pm") && !lowerMsg.includes("am") && !lowerMsg.includes("tomorrow"))) {
-        const matchedMovie = movies.find((m) => lowerMsg.includes(m.title.toLowerCase())) || movies[0];
-
+      // If user hasn't explicitly clicked confirm button, render confirmation slot-filling UI card
+      if (action !== "create_showtime" && !draftData) {
         return NextResponse.json({
           type: "prompt_showtime_details",
-          reply: `I can schedule a showtime session for "${matchedMovie?.title || "selected movie"}". Please confirm the cinema location and start time below:`,
+          reply: `I can schedule a showtime session for "${targetMovie?.title || "selected movie"}". Please review or confirm the cinema location and start time below:`,
           draftData: {
-            movieId: matchedMovie?.id,
-            movieTitle: matchedMovie?.title,
-            cinemaId: cinemas[0]?.id,
-            format: "IMAX 3D Laser",
-            basePrice: 16.5,
+            movieId: targetMovie?.id,
+            movieTitle: targetMovie?.title,
+            cinemaId: targetCinemaId,
+            format,
+            basePrice,
             startTime: startTimeStr,
           },
           availableMovies: movies.map((m) => ({ id: m.id, title: m.title })),
@@ -69,7 +125,7 @@ export async function POST(req: Request) {
         });
       }
 
-      const selectedMovie = movies.find((m) => m.id === targetMovieId);
+      const selectedMovie = movies.find((m) => m.id === targetMovie?.id);
       const selectedCinema = cinemas.find((c) => c.id === targetCinemaId);
       const targetHallId = selectedCinema?.halls[0]?.id;
 
@@ -104,7 +160,7 @@ export async function POST(req: Request) {
 
       const showtime = await prisma.showtime.create({
         data: {
-          movieId: targetMovieId,
+          movieId: selectedMovie.id,
           cinemaId: targetCinemaId,
           hallId: targetHallId,
           startTime: start,
@@ -218,7 +274,7 @@ export async function POST(req: Request) {
     // =========================================================================
     // ACTION 5: Movie Search / Add Intent (Whole Word Regex)
     // =========================================================================
-    if (lowerMsg.includes("add") || lowerMsg.includes("import") || lowerMsg.includes("find") || lowerMsg.includes("search")) {
+    if (lowerMsg.startsWith("add ") || lowerMsg.startsWith("import ") || lowerMsg.startsWith("find ") || lowerMsg.startsWith("search ")) {
       const cleanQuery = lowerMsg
         .replace(/\b(add|import|find|search|to|catalog|my|the|movie|movies|now|showing)\b/gi, "")
         .replace(/\s+/g, " ")
@@ -237,12 +293,34 @@ export async function POST(req: Request) {
     }
 
     // =========================================================================
-    // OpenRouter LLM Intelligence for Natural Conversations
+    // OpenRouter LLM Intelligence for Natural Conversations & Compacted History
     // =========================================================================
     if (apiKey && apiKey !== "") {
       try {
-        const moviesCount = await prisma.movie.count();
-        const cinemasCount = await prisma.cinema.count();
+        const moviesCount = movies.length;
+        const cinemasCount = cinemas.length;
+
+        // Build compact conversation context from past history array
+        const compactHistory: Array<{ role: string; content: string }> = [];
+        if (Array.isArray(history)) {
+          // Take recent turns (up to last 6 messages) to prevent context drift
+          const recent = history.slice(-6);
+          recent.forEach((item: any) => {
+            if (item.text) {
+              compactHistory.push({
+                role: item.sender === "user" ? "user" : "assistant",
+                content: item.text,
+              });
+            }
+          });
+        }
+
+        const systemPrompt = AI_AGENT_CONFIG.adminAgent.systemPrompt(
+          moviesCount,
+          cinemasCount,
+          movies.map((m) => m.title),
+          cinemas.map((c) => `${c.name} (${c.city})`)
+        );
 
         const llmRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
@@ -256,10 +334,8 @@ export async function POST(req: Request) {
             model: AI_AGENT_CONFIG.model,
             max_tokens: 600,
             messages: [
-              {
-                role: "system",
-                content: AI_AGENT_CONFIG.adminAgent.systemPrompt(moviesCount, cinemasCount),
-              },
+              { role: "system", content: systemPrompt },
+              ...compactHistory,
               { role: "user", content: message },
             ],
           }),

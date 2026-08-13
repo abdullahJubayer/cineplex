@@ -99,10 +99,21 @@ export function AdminAiChat({
     setLoading(true);
 
     try {
+      // Compact conversation history (last 6 turns) to pass context without bloat
+      const historyPayload = messages.slice(-6).map((m) => ({
+        sender: m.sender,
+        text: m.text,
+      }));
+
       const res = await fetch("/api/admin/ai-agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: query, action: actionType, draftData }),
+        body: JSON.stringify({
+          message: query,
+          action: actionType,
+          draftData,
+          history: historyPayload,
+        }),
       });
 
       const data = await res.json();

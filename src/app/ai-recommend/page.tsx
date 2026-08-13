@@ -231,10 +231,10 @@ export default function AiRecommendPage() {
           setRecommendations(newRecs);
         }
 
-        // If reply contains a booking reference code (TCK-AI-XXXXXX), save to guest sessionStorage!
-        const bookingMatch = data.reply.match(/TCK-[A-Z0-9-]+/i);
-        if (bookingMatch && bookingMatch[0]) {
-          const bookingNo = bookingMatch[0].toUpperCase();
+        // If reply or API response contains a booking reference code (TCK-AI-XXXXXX), save to guest sessionStorage!
+        const bookingNoToSave = data.createdBookingNo || (data.reply.match(/TCK-[A-Z0-9-]+/i) ? data.reply.match(/TCK-[A-Z0-9-]+/i)[0] : null);
+        if (bookingNoToSave) {
+          const bookingNo = bookingNoToSave.toUpperCase();
           const existingStr = sessionStorage.getItem("ticketor_guest_booking_nos");
           let existingNos: string[] = [];
           if (existingStr) {

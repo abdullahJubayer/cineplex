@@ -5,6 +5,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { BookingProvider } from "@/context/BookingContext";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { UserAiChatFloating } from "@/components/UserAiChatFloating";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,6 +27,7 @@ export default function RootLayout({
             <Navbar />
             <main className="flex-1">{children}</main>
             <Footer />
+            <UserAiChatFloating />
           </BookingProvider>
         </AuthProvider>
       </body>

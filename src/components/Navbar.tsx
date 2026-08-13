@@ -42,13 +42,6 @@ export function Navbar() {
           <Link href="/food" className="hover:text-[#FCFC65] transition-colors">
             Food & Drink
           </Link>
-          <Link
-            href="/ai-recommend"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FCFC65]/10 border border-[#FCFC65]/30 text-[#FCFC65] hover:bg-[#FCFC65] hover:text-[#010108] transition-all"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>AI Recommender</span>
-          </Link>
         </nav>
 
         {/* Action / User section */}

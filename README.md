@@ -1,6 +1,6 @@
 # Ticketor Cineplex Pro
 
-Ticketor Cineplex Pro is an enterprise-grade movie ticketing and cinema management web application built with Next.js (App Router), TypeScript, Prisma ORM, and Tailwind CSS. It features anonymous browsing, dynamic seat matrix selection, food and drink concession purchasing, digital ticket wallet generation with live QR codes, AI-powered movie recommendation agents, and a complete autonomous admin control panel.
+Ticketor Cineplex Pro is an enterprise-grade movie ticketing and cinema management web application built with Next.js (App Router), TypeScript, Prisma ORM, and Tailwind CSS. It features anonymous browsing, dynamic seat matrix selection, food and drink concession purchasing, digital ticket wallet generation with live QR codes, AI-powered movie recommendation agents, external agent MCP integration, and a complete autonomous admin control panel.
 
 ---
 
@@ -15,32 +15,45 @@ The application is architected following modular, test-driven development princi
 | Styling | Tailwind CSS | Custom theme design system tokens (#FCFC65, #010108, #141418, #1A1A1F) |
 | Database & ORM | Prisma ORM + PostgreSQL / SQLite | Data access layer with atomic transactions for seat holds and bookings |
 | AI Integration | OpenRouter LLM + TMDB API | Autonomous admin operating agent and movie recommendation chat agent |
+| MCP Protocol | Model Context Protocol (MCP) | JSON-RPC 2.0 (`/api/mcp`) & SSE Bridge (`/api/mcp/sse`) for external agent integration |
 | Authentication | Custom Session & Role Management | Protected routes, HTTP-only session state, Role-Based Access Control (RBAC) |
 | Testing | Vitest + React Testing Library + Playwright | Unit, integration, and end-to-end test suites |
 | Visualization | Recharts | Sales dashboard analytics, revenue area charts, booking metrics |
 
 ---
 
-## 2. Overall Features
+## 2. Overall Features & Recent Updates
 
-### User Experience Features
-- **Interactive Hero Carousel**: Auto-rotating hero slider showcasing current blockbusters with trailer modals, slide indicators, and manual navigation controls.
-- **Movie Catalog & Search**: Comprehensive movie catalog supporting filter pills (Now Showing, Coming Soon, Top 10), genre tags, age ratings, and full cast lists with real TMDB actor profile images.
-- **Dynamic Seat Selection Matrix**: Interactive trapezoid stage screen layout with real-time seat status tracking, seat categories (VIP, COUPLE, STANDARD), dynamic pricing, and live total calculation.
-- **Food & Drink Concession Store**: Category-filtered concession store with item counter steppers, full item previews, and sticky checkout summaries.
-- **Atomic Booking & Checkout**: Multi-step booking pipeline backed by database transactions, promo code discount applications, and instant booking confirmation.
-- **Digital Ticket Wallet (`/my-tickets`)**: Personal booking history page featuring live SVG/PNG QR code reference generation for cinema entry.
-- **AI Recommendation Agent (`/ai-recommend`)**: Personalized movie recommendation engine powered by OpenRouter LLM. Guest interactions persist in session storage, while logged-in user chats are automatically summarized into the database for cross-device synchronization.
-- **User Reviews & Ratings**: Aggregate user score breakdown, rating percentage bars, and user feedback submission.
+### User Experience & AI Floating Assistant
+- **Floating User AI Movie Assistant**: Interactive floating widget (`UserAiChatFloating`) available across all public pages for movie recommendations, seat availability queries, and instant ticket booking.
+- **Dedicated Moviegoer Login (`/login`)**: Streamlined sign-in flow for cinema guests.
+- **Digital Ticket Wallet (`/my-tickets`)**: Live digital ticket history with SVG/PNG QR entry codes. Tickets booked via AI chat or web UI automatically persist in PostgreSQL under the user's account across sessions and logouts.
+- **Interactive Hero Carousel**: Auto-rotating hero slider showcasing current blockbusters with trailer modals, slide indicators, and manual controls.
+- **Dynamic Seat Selection Matrix**: Interactive trapezoid stage screen layout with real-time seat status tracking, seat categories (VIP, COUPLE, STANDARD), and live total calculation.
 
 ### Admin Control Panel Features (`/admin/*`)
-- **Role-Based Access Control (RBAC)**: Gated admin navigation and API endpoints enforcing strict role verification.
-- **Sales Analytics Dashboard**: Analytics dashboard featuring Recharts area line charts, revenue tracking, ticket counts, and dynamic blockbuster suggestions that automatically exclude titles already in the database catalog.
-- **Movie Catalog Management**: Full CRUD interface for adding movies manually or importing top releases from TMDB in one click.
-- **Showtime Session Scheduler**: Session planner with overlap collision detection, hall assignment, format selection (IMAX 3D Laser, Dolby Atmos, 2D), and pricing controls.
-- **Cinema & Auditorium Layout Builder**: Venue manager and seat matrix generator allowing custom row/column counts and hall assignments.
-- **Promo Code Manager**: Discount management supporting percentage and fixed value reductions, usage limits, and expiration tracking.
-- **Autonomous Admin AI Assistant**: Floating AI assistant widget with function calling tools capable of importing movies from TMDB, scheduling showtimes, creating cinema layouts, and issuing promo codes directly through natural language chat.
+- **Dedicated Admin Login Portal (`/login/admin`)**: Restricted sign-in portal for cinema managers with default credentials (`admin@gmail.com` / `123456`).
+- **Tickets List Management (`/admin/tickets`)**: Admin reservation viewer with **Upcoming** and **Already Passed** status filters, search functionality, and digital QR receipt popups.
+- **Autonomous Admin AI Assistant**: Floating AI assistant (`AdminAiChat`) with conversation history compaction and strict context retention guardrails to prevent TMDB search fallback on follow-up schedule requests.
+- **Sales Analytics Dashboard (`/admin/dashboard`)**: Analytics dashboard featuring Recharts area line charts, revenue tracking, ticket counts, and dynamic blockbuster suggestions that automatically exclude titles already in the database catalog.
+- **Venue & Showtime Management**: CRUD interfaces for movies, cinemas, seat matrix layouts, showtime collision validation, and promo code management.
+
+### Model Context Protocol (MCP) Integration for External Agents
+External AI agents (such as Claude Code, Cursor, or custom subagents) can connect to running instances of Ticketor Cineplex Pro via MCP to query movies, check showtimes, inspect seats, and book tickets.
+
+- **JSON-RPC 2.0 Endpoint**: `http://localhost:3000/api/mcp`
+- **SSE Stream Endpoint**: `http://localhost:3000/api/mcp/sse`
+- **MCP Server Name**: `ticketor-cineplex-mcp`
+- **Figma/Remote Bridge Configuration**:
+  ```json
+  "cineplex-mcp-server": {
+    "command": "npx",
+    "args": [
+      "mcp-remote",
+      "http://127.0.0.1:3000/api/mcp/sse"
+    ]
+  }
+  ```
 
 ---
 
@@ -54,11 +67,8 @@ cineplex-pro/
 │   └── dev.db                     # Development SQLite database
 ├── public/                        # Static assets, branding, and images
 ├── skills/                        # Curated AI agent skill modules
-│   ├── brainstorming/
-│   ├── dashboard-designer/
-│   ├── figma-design-to-code/
-│   ├── verification-before-completion/
-│   └── writing-plans/
+│   ├── figma-design-to-code/      # Figma Dev Mode MCP design-to-code translation guidelines
+│   └── ...
 ├── src/
 │   ├── app/                       # Next.js App Router routes & API endpoints
 │   │   ├── admin/                 # Admin control panel pages
@@ -66,21 +76,25 @@ cineplex-pro/
 │   │   │   ├── dashboard/         # Sales analytics dashboard
 │   │   │   ├── movies/            # Movie catalog management
 │   │   │   ├── promos/            # Promo code management
-│   │   │   └── showtimes/         # Showtime scheduler
+│   │   │   ├── showtimes/         # Showtime scheduler
+│   │   │   └── tickets/           # Admin ticket reservation list & QR receipt viewer
 │   │   ├── ai-recommend/          # User AI recommendation agent page
 │   │   ├── api/                   # Serverless API routes
-│   │   │   ├── admin/             # Admin management & AI assistant APIs
+│   │   │   ├── admin/             # Admin management, tickets & AI assistant APIs
+│   │   │   │   └── tickets/       # Admin ticket listing API
 │   │   │   ├── ai-chat/           # AI chat summarization & persistence APIs
 │   │   │   ├── ai-recommendations/# Recommendation LLM engine APIs
 │   │   │   ├── auth/              # Authentication & registration APIs
 │   │   │   ├── bookings/          # Booking creation & checkout APIs
 │   │   │   ├── food/              # Food menu APIs
+│   │   │   ├── mcp/               # MCP JSON-RPC & SSE endpoints (/api/mcp & /api/mcp/sse)
 │   │   │   ├── movies/            # Movie catalog APIs
 │   │   │   └── showtimes/         # Showtime session APIs
 │   │   ├── booking/               # Booking flow pages (seats, food, checkout)
 │   │   ├── cinemas/               # Cinema venue listing page
 │   │   ├── food/                  # Food menu standalone page
-│   │   ├── login/                 # User & Admin authentication login page
+│   │   ├── login/                 # Moviegoer login page
+│   │   │   └── admin/             # Dedicated Admin portal login page
 │   │   ├── movies/[id]/           # Movie detail page
 │   │   ├── my-tickets/            # Digital ticket wallet page
 │   │   ├── showtimes/             # Showtime browsing page
@@ -89,17 +103,21 @@ cineplex-pro/
 │   │   └── page.tsx               # Homepage with hero carousel & featured sections
 │   ├── components/                # Reusable UI components
 │   │   ├── AdminAiChat.tsx        # Floating/embedded autonomous admin AI assistant
+│   │   ├── UserAiChatFloating.tsx # Floating user AI movie assistant widget
 │   │   ├── Navbar.tsx             # Main navigation header
 │   │   └── Footer.tsx             # Application footer
 │   ├── context/                   # React context providers
 │   │   ├── AuthContext.tsx        # Authentication state & session provider
 │   │   └── BookingContext.tsx     # Active booking pipeline state provider
 │   └── lib/                       # Utility modules & external service clients
+│       ├── adminAuth.ts           # Admin authorization helper
+│       ├── ai-config.ts           # Central AI agent system prompts & configuration
 │       ├── prisma.ts              # Prisma Client singleton
 │       └── tmdb.ts                # TMDB API integration & data mapper
 ├── AGENTS.md                      # Operational manual & implementation checklist
+├── MCP_CONFIG.md                  # MCP remote connection guide
+├── MCP_SERVER_GUIDE.md            # Comprehensive MCP tool documentation
 ├── package.json                   # Project scripts and dependencies
-├── render.yaml                    # Render blueprint deployment configuration
 └── tsconfig.json                  # TypeScript strict mode configuration
 ```
 
@@ -115,7 +133,7 @@ cineplex-pro/
 
 1. Clone the repository and install dependencies:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/cineplex.git
+   git clone https://github.com/abdullahJubayer/cineplex.git
    cd cineplex
    npm install
    ```
@@ -123,14 +141,14 @@ cineplex-pro/
 2. Configure environment variables in `.env`:
    ```env
    DATABASE_URL="file:./dev.db"
-   TMDB_API_KEY="your tmdb api key"
+   TMDB_API_KEY="your-tmdb-api-key"
    OPEN_ROUTER_API_KEY="your-openrouter-api-key"
    ```
 
 3. Seed the database with TMDB blockbusters and cinema layouts:
    ```bash
    npx prisma db push
-   npx prisma db seed
+   npx tsx prisma/seed.ts
    ```
 
 4. Start the development server:
@@ -141,31 +159,20 @@ cineplex-pro/
 
 ---
 
-## 5. Verification Commands
+## 5. Default Credentials
+
+- **Admin Login Portal**: `/login/admin`
+  - **Email**: `admin@gmail.com`
+  - **Password**: `123456`
+- **Moviegoer Login**: `/login`
+
+---
+
+## 6. Verification Commands
 
 Run static type analysis and build verification:
 
 ```bash
-# Type check
-npx tsc --noEmit
-
-# Production build
+# Type check & build
 npm run build
 ```
-
----
-
-## 6. Production Deployment (Render)
-
-This repository includes a pre-configured `render-build` script in `package.json` for deployment to Render:
-
-1. Create a PostgreSQL database on Render.
-2. Create a Web Service connected to this repository.
-3. Set the following Build and Start commands:
-   - Build Command: `npm run render-build`
-   - Start Command: `npm start`
-4. Set Environment Variables:
-   - `DATABASE_URL`: Your Render PostgreSQL connection string
-   - `TMDB_API_KEY`: `Your TMDB API Key`
-   - `OPEN_ROUTER_API_KEY`: Your OpenRouter API Key
-   - `NODE_ENV`: `production`

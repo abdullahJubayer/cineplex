@@ -195,9 +195,25 @@ async function executeTool(name: string, args: any, requestUserId?: string) {
     if (!showtime) return { error: "No showtimes available to book tickets." };
 
     // Resolve valid user record from database to prevent foreign key constraint failures
-    let validUser = await prisma.user.findFirst({
-      where: { OR: [{ id: targetUserId || "usr_demo" }, { email: targetUserId || "alex@ticketor.com" }] },
-    });
+    // Resolve valid user record from database
+    let validUser = null;
+    if (targetUserId) {
+      validUser = await prisma.user.findFirst({
+        where: { OR: [{ id: targetUserId }, { email: targetUserId }] },
+      });
+
+      if (!validUser) {
+        validUser = await prisma.user.create({
+          data: {
+            id: targetUserId.startsWith("usr_") ? targetUserId : `usr_${targetUserId.replace(/[^a-zA-Z0-9]/g, "_")}`,
+            email: targetUserId.includes("@") ? targetUserId : `${targetUserId}@ticketor.com`,
+            name: targetUserId.split("@")[0],
+            password: "password123",
+            isVerified: true,
+          },
+        });
+      }
+    }
 
     if (!validUser) {
       validUser = await prisma.user.findFirst();
@@ -293,6 +309,7 @@ export async function POST(request: Request) {
 
         let aiData = await response.json();
         let choice = aiData.choices?.[0];
+        let toolResult: any = null;
 
         // Handle function / tool calls if AI agent decides to invoke an MCP tool
         if (choice?.message?.tool_calls?.length > 0) {
@@ -300,7 +317,7 @@ export async function POST(request: Request) {
           const toolName = toolCall.function.name;
           const toolArgs = JSON.parse(toolCall.function.arguments || "{}");
 
-          const toolResult = await executeTool(toolName, toolArgs, userId);
+          toolResult = await executeTool(toolName, toolArgs, userId);
 
           // Append tool execution result back into conversation and get final assistant response
           conversationMessages.push(choice.message);
@@ -329,25 +346,29 @@ export async function POST(request: Request) {
           choice = aiData.choices?.[0];
         }
 
-        if (choice?.message?.content) {
-          const recommendations = movies.slice(0, 3).map((m) => ({
-            id: m.id,
-            title: m.title,
-            posterUrl: m.posterUrl,
-            rating: m.rating,
-            genres: m.genres,
-            director: m.director,
-            durationMins: m.durationMins,
-            matchReason: `Now showing in IMAX Laser & 4DX halls.`,
-            watchUrl: m.watchUrl || `https://www.justwatch.com/us/search?q=${encodeURIComponent(m.title)}`,
-          }));
+        const recommendations = movies.slice(0, 3).map((m) => ({
+          id: m.id,
+          title: m.title,
+          posterUrl: m.posterUrl,
+          rating: m.rating,
+          genres: m.genres,
+          director: m.director,
+          durationMins: m.durationMins,
+          matchReason: `Now showing in IMAX Laser & 4DX halls.`,
+          watchUrl: m.watchUrl || `https://www.justwatch.com/us/search?q=${encodeURIComponent(m.title)}`,
+        }));
 
-          return NextResponse.json({
-            reply: choice.message.content,
-            preferences: userPref || {},
-            recommendations,
-          });
+        let createdBookingNo: string | null = null;
+        if (toolResult && typeof toolResult === "object" && toolResult.bookingNo) {
+          createdBookingNo = toolResult.bookingNo;
         }
+
+        return NextResponse.json({
+          reply: choice?.message?.content || toolResult?.confirmationText || "Action completed!",
+          preferences: userPref || {},
+          recommendations,
+          createdBookingNo,
+        });
       } catch (err) {
         console.warn("OpenRouter tool calling error, falling back to local database engine:", err);
       }

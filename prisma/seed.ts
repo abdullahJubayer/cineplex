@@ -23,9 +23,9 @@ async function main() {
   const user = await prisma.user.create({
     data: {
       id: "usr_demo",
-      email: "alex@ticketor.com",
-      name: "Alex Rivera",
-      password: "password123",
+      email: "admin@gmail.com",
+      name: "Admin User",
+      password: "123456",
       isVerified: true,
       avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
     },
@@ -170,6 +170,8 @@ async function main() {
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
   });
+
+
 
   console.log("🎉 Database refreshed cleanly with showtimes for ALL 5 TMDB movies!");
 }

@@ -38,8 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = (email: string, customRole?: "ADMIN" | "USER") => {
     const isAdmin = customRole === "ADMIN" || email.includes("admin") || email === "alex@ticketor.com";
+    // Check for demo user or generate consistent ID
+    const userId = email === "admin@gmail.com" ? "usr_demo" : `usr_${email.replace(/[^a-zA-Z0-9]/g, "_")}`;
     const newUser: User = {
-      id: "usr_" + Math.random().toString(36).substring(2, 7),
+      id: userId,
       email,
       name: email.split("@")[0],
       role: isAdmin ? "ADMIN" : "USER",
@@ -52,6 +54,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setUser(null);
     localStorage.removeItem("ticketor_user");
+    sessionStorage.removeItem("ticketor_guest_booking_nos");
+    sessionStorage.removeItem("ticketor_user_chat_messages");
+    sessionStorage.removeItem("ticketor_user_chat_preferences");
+    sessionStorage.removeItem("ticketor_user_chat_recommendations");
   };
 
   return (

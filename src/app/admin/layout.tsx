@@ -32,6 +32,7 @@ export default function AdminLayout({
     { label: "Movies", href: "/admin/movies", icon: Film },
     { label: "Cinemas & Layouts", href: "/admin/cinemas", icon: Building2 },
     { label: "Showtimes", href: "/admin/showtimes", icon: Clock },
+    { label: "Tickets List", href: "/admin/tickets", icon: Ticket },
     { label: "Promo Codes", href: "/admin/promos", icon: Tag },
   ];
 

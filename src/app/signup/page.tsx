@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Film, Mail, Lock, User, ArrowRight, ShieldCheck } from "lucide-react";
+import { Mail, Lock, User, ArrowRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function SignupPage() {
@@ -12,16 +12,11 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"USER" | "ADMIN">("USER");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login(email || "user@ticketor.com", role);
-    if (role === "ADMIN") {
-      router.push("/admin/dashboard");
-    } else {
-      router.push("/");
-    }
+    login(email || "user@ticketor.com", "USER");
+    router.push("/");
   };
 
   return (
@@ -85,36 +80,6 @@ export default function SignupPage() {
                 required
                 className="w-full pl-10 pr-4 py-3.5 rounded-xl bg-[#010108] border border-[#1A1A1F] text-white placeholder-[#565669] focus:outline-none focus:border-[#FCFC65] transition-colors"
               />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[#E0E0E4] font-semibold mb-2">Account Type</label>
-            <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#010108] border border-[#1A1A1F]">
-              <button
-                type="button"
-                onClick={() => setRole("USER")}
-                className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                  role === "USER"
-                    ? "bg-[#FCFC65] text-[#010108] shadow-md shadow-[#FCFC65]/20"
-                    : "text-[#9797AA] hover:text-white"
-                }`}
-              >
-                <Film className="w-3.5 h-3.5" />
-                <span>Moviegoer</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("ADMIN")}
-                className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                  role === "ADMIN"
-                    ? "bg-[#FCFC65] text-[#010108] shadow-md shadow-[#FCFC65]/20"
-                    : "text-[#9797AA] hover:text-white"
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Admin</span>
-              </button>
             </div>
           </div>
 

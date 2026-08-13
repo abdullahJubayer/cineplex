@@ -35,11 +35,28 @@ export async function POST(request: Request) {
       );
     }
 
-    // Resolve valid database user
-    const targetUserId = userId || "usr_demo";
-    let validUser = await prisma.user.findFirst({
-      where: { OR: [{ id: targetUserId }, { email: targetUserId }] },
-    });
+    // Resolve valid database user (Find or Upsert by email or ID)
+    let validUser = null;
+    if (userId) {
+      validUser = await prisma.user.findFirst({
+        where: { OR: [{ id: userId }, { email: userId }] },
+      });
+
+      if (!validUser) {
+        const cleanEmail = userId.includes("@") ? userId : `${userId.replace("usr_", "")}@ticketor.com`;
+        const cleanId = userId.startsWith("usr_") ? userId : `usr_${userId.replace(/[^a-zA-Z0-9]/g, "_")}`;
+        
+        validUser = await prisma.user.create({
+          data: {
+            id: cleanId,
+            email: cleanEmail,
+            name: cleanEmail.split("@")[0],
+            password: "password123",
+            isVerified: true,
+          },
+        });
+      }
+    }
 
     if (!validUser) {
       validUser = await prisma.user.findFirst();
@@ -110,13 +127,17 @@ export async function GET(request: Request) {
 
     // Case 1: Logged-in User Request (User-wise history)
     if (requestedUserId && requestedUserId.trim() !== "" && requestedUserId !== "null" && requestedUserId !== "undefined") {
+      const derivedEmail = requestedUserId.includes("@")
+        ? requestedUserId
+        : `${requestedUserId.replace("usr_", "")}@ticketor.com`;
+
       const userMatches = await prisma.user.findMany({
-        where: { OR: [{ id: requestedUserId }, { email: requestedUserId }] },
+        where: { OR: [{ id: requestedUserId }, { email: requestedUserId }, { email: derivedEmail }] },
         select: { id: true },
       });
 
       const userIdsToMatch = Array.from(
-        new Set([requestedUserId, ...userMatches.map((u) => u.id)])
+        new Set([requestedUserId, derivedEmail, ...userMatches.map((u) => u.id)])
       );
 
       whereClause = { userId: { in: userIdsToMatch } };
