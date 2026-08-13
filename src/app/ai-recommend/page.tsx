@@ -231,6 +231,21 @@ export default function AiRecommendPage() {
           setRecommendations(newRecs);
         }
 
+        // If reply contains a booking reference code (TCK-AI-XXXXXX), save to guest sessionStorage!
+        const bookingMatch = data.reply.match(/TCK-[A-Z0-9-]+/i);
+        if (bookingMatch && bookingMatch[0]) {
+          const bookingNo = bookingMatch[0].toUpperCase();
+          const existingStr = sessionStorage.getItem("ticketor_guest_booking_nos");
+          let existingNos: string[] = [];
+          if (existingStr) {
+            try { existingNos = JSON.parse(existingStr); } catch (e) {}
+          }
+          if (!existingNos.includes(bookingNo)) {
+            existingNos.push(bookingNo);
+            sessionStorage.setItem("ticketor_guest_booking_nos", JSON.stringify(existingNos));
+          }
+        }
+
         // If user is logged in, summarize and save messages + watchlist to Prisma DB!
         if (user?.id) {
           saveSummaryToDb(updatedMessages, newRecs);

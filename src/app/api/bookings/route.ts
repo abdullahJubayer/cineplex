@@ -103,26 +103,44 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const requestedUserId = searchParams.get("userId");
+  const bookingNosParam = searchParams.get("bookingNos");
 
   try {
-    // Find all database user IDs associated with this request
-    const userMatches = requestedUserId
-      ? await prisma.user.findMany({
-          where: { OR: [{ id: requestedUserId }, { email: requestedUserId }] },
-          select: { id: true },
-        })
-      : [];
+    let whereClause: any = null;
 
-    const userIdsToMatch = Array.from(
-      new Set([
-        "usr_demo",
-        ...(requestedUserId ? [requestedUserId] : []),
-        ...userMatches.map((u) => u.id),
-      ])
-    );
+    // Case 1: Logged-in User Request (User-wise history)
+    if (requestedUserId && requestedUserId.trim() !== "" && requestedUserId !== "null" && requestedUserId !== "undefined") {
+      const userMatches = await prisma.user.findMany({
+        where: { OR: [{ id: requestedUserId }, { email: requestedUserId }] },
+        select: { id: true },
+      });
+
+      const userIdsToMatch = Array.from(
+        new Set([requestedUserId, ...userMatches.map((u) => u.id)])
+      );
+
+      whereClause = { userId: { in: userIdsToMatch } };
+    } 
+    // Case 2: Unauthenticated / Anonymous Session Request (Session-wise history)
+    else if (bookingNosParam && bookingNosParam.trim() !== "") {
+      const nosArray = bookingNosParam
+        .split(",")
+        .map((n) => n.trim())
+        .filter((n) => n.length > 0);
+
+      if (nosArray.length > 0) {
+        whereClause = { bookingNo: { in: nosArray } };
+      } else {
+        return NextResponse.json([]);
+      }
+    } 
+    // Case 3: Anonymous guest with no session bookings -> return empty array
+    else {
+      return NextResponse.json([]);
+    }
 
     const bookings = await prisma.booking.findMany({
-      where: { userId: { in: userIdsToMatch } },
+      where: whereClause,
       include: {
         showtime: {
           include: {
