@@ -20,7 +20,7 @@ const tools = [
       parameters: {
         type: "object",
         properties: {
-          movieId: { type: "string", description: "Optional movie ID or title to filter showtimes." },
+          movieId: { type: "string", description: "Optional movie ID or movie title to filter showtimes." },
         },
       },
     },
@@ -29,13 +29,13 @@ const tools = [
     type: "function",
     function: {
       name: "check_seat_availability",
-      description: "Check available seats vs booked seats for a specific showtime session.",
+      description: "Check available seats vs booked seats, seat types (VIP, Premium, Standard), and prices for a movie or showtime session.",
       parameters: {
         type: "object",
         properties: {
-          showtimeId: { type: "string", description: "The ID of the showtime session." },
+          showtimeId: { type: "string", description: "Optional showtime ID, movie title, or movie name." },
         },
-        required: ["showtimeId"],
+        required: [],
       },
     },
   },
@@ -47,7 +47,7 @@ const tools = [
       parameters: {
         type: "object",
         properties: {
-          showtimeId: { type: "string", description: "The ID of the showtime to book." },
+          showtimeId: { type: "string", description: "The ID or movie title of the showtime to book." },
           seats: {
             type: "array",
             items: { type: "string" },
@@ -55,7 +55,7 @@ const tools = [
           },
           userId: { type: "string", description: "Optional user ID (defaults to active logged-in user)." },
         },
-        required: ["showtimeId", "seats"],
+        required: ["seats"],
       },
     },
   },
@@ -99,16 +99,39 @@ async function executeTool(name: string, args: any, requestUserId?: string) {
   }
 
   if (name === "check_seat_availability") {
-    const showtime = await prisma.showtime.findUnique({
-      where: { id: args.showtimeId },
-      include: {
-        movie: true,
-        hall: { include: { seats: true } },
-        bookings: { select: { seatsJson: true } },
-      },
-    });
+    const inputStr = args?.showtimeId || args?.movieId || "";
+    let showtime = null;
 
-    if (!showtime) return { error: "Showtime not found" };
+    if (inputStr) {
+      showtime = await prisma.showtime.findFirst({
+        where: {
+          OR: [
+            { id: inputStr },
+            { movieId: inputStr },
+            { movie: { title: { contains: inputStr } } },
+          ],
+        },
+        include: {
+          movie: true,
+          cinema: true,
+          hall: { include: { seats: true } },
+          bookings: { select: { seatsJson: true } },
+        },
+      });
+    }
+
+    if (!showtime) {
+      showtime = await prisma.showtime.findFirst({
+        include: {
+          movie: true,
+          cinema: true,
+          hall: { include: { seats: true } },
+          bookings: { select: { seatsJson: true } },
+        },
+      });
+    }
+
+    if (!showtime) return { error: "No active showtime sessions found." };
 
     const bookedSeats = new Set<string>();
     for (const b of showtime.bookings) {
@@ -122,11 +145,23 @@ async function executeTool(name: string, args: any, requestUserId?: string) {
       .map((s) => `${s.row}${s.number}`)
       .filter((sLabel) => !bookedSeats.has(sLabel));
 
+    const vipSeats = showtime.hall.seats
+      .filter((s) => s.type === "VIP")
+      .map((s) => `${s.row}${s.number}`)
+      .filter((sLabel) => !bookedSeats.has(sLabel));
+
     return {
+      showtimeId: showtime.id,
       movieTitle: showtime.movie.title,
+      cinemaName: showtime.cinema.name,
+      hallName: showtime.hall.name,
+      format: showtime.format,
       totalSeats: showtime.hall.totalSeats,
+      bookedSeatsCount: bookedSeats.size,
       bookedSeats: Array.from(bookedSeats),
-      availableSeats: availableSeats.slice(0, 15),
+      availableSeats: availableSeats.slice(0, 20),
+      vipReclinerSeats: vipSeats.slice(0, 10),
+      basePrice: showtime.basePrice,
     };
   }
 
@@ -135,11 +170,21 @@ async function executeTool(name: string, args: any, requestUserId?: string) {
     const targetUserId = argsUserId || requestUserId;
     const isAnonymous = !requestUserId;
 
-    // Ensure showtime exists or grab the first available showtime
-    let showtime = await prisma.showtime.findUnique({
-      where: { id: showtimeId },
-      include: { movie: true, cinema: true },
-    });
+    let inputStr = showtimeId || "";
+    let showtime = null;
+
+    if (inputStr) {
+      showtime = await prisma.showtime.findFirst({
+        where: {
+          OR: [
+            { id: inputStr },
+            { movieId: inputStr },
+            { movie: { title: { contains: inputStr } } },
+          ],
+        },
+        include: { movie: true, cinema: true },
+      });
+    }
 
     if (!showtime) {
       showtime = await prisma.showtime.findFirst({
@@ -316,7 +361,8 @@ export async function POST(request: Request) {
       const nowShowing = movies.filter((m) => m.status === "NOW_SHOWING");
       replyText = `🎬 **Currently Playing in Cinemas:**\n` + nowShowing.map((m) => `• **${m.title}** (${m.genres}) - Rating: ${m.rating}★`).join("\n");
     } else if (lastMsgLower.includes("seat") || lastMsgLower.includes("available")) {
-      replyText = `💺 **Live Seat Availability for Ticketor Grand IMAX:**\n• Available Standard Rows: A1-A12, B1-B12, C1-C12, D1-D4, D7-D12\n• Reserved Seats: D5, D6\n• VIP Recliner Seats (Row F): F1-F12 Available ($22.00)`;
+      const toolRes: any = await executeTool("check_seat_availability", {}, userId);
+      replyText = `💺 **Live Seat Availability for ${toolRes.movieTitle || "Ticketor Grand IMAX"}:**\n• Cinema: ${toolRes.cinemaName || "Grand IMAX"} (${toolRes.hallName || "Auditorium 1"})\n• Open Seats: ${toolRes.availableSeats?.slice(0, 10).join(", ")}\n• Reserved Seats: ${toolRes.bookedSeats?.join(", ") || "None"}\n• VIP Recline Seats: ${toolRes.vipReclinerSeats?.join(", ") || "F1-F12"}\n• Base Ticket Price: $${toolRes.basePrice?.toFixed(2) || "16.50"}`;
     } else if (lastMsgLower.includes("book") || lastMsgLower.includes("buy") || lastMsgLower.includes("ticket")) {
       // Execute resilient booking tool directly for local fallback
       const toolRes: any = await executeTool("book_ticket_for_user", { seats: ["D7", "D8"] }, userId);
