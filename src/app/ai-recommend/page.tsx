@@ -215,6 +215,7 @@ export default function AiRecommendPage() {
           messages: newMessages,
           preferences,
           summary: dbSummary,
+          userId: user?.id,
         }),
       });
 
