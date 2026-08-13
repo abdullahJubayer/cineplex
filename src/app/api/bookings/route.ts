@@ -35,13 +35,35 @@ export async function POST(request: Request) {
       );
     }
 
+    // Resolve valid database user
+    const targetUserId = userId || "usr_demo";
+    let validUser = await prisma.user.findFirst({
+      where: { OR: [{ id: targetUserId }, { email: targetUserId }] },
+    });
+
+    if (!validUser) {
+      validUser = await prisma.user.findFirst();
+    }
+
+    if (!validUser) {
+      validUser = await prisma.user.create({
+        data: {
+          id: "usr_demo",
+          email: "alex@ticketor.com",
+          name: "Alex Rivera",
+          password: "password123",
+          isVerified: true,
+        },
+      });
+    }
+
     const bookingNo = `TCK-${Math.floor(100000 + Math.random() * 900000)}`;
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${bookingNo}`;
 
     const booking = await prisma.booking.create({
       data: {
         bookingNo,
-        userId: userId || "usr_demo",
+        userId: validUser.id,
         showtimeId,
         seatsJson: JSON.stringify(seats),
         totalPrice: totalPrice || 0,
@@ -80,11 +102,27 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const userId = searchParams.get("userId") || "usr_demo";
+  const requestedUserId = searchParams.get("userId");
 
   try {
+    // Find all database user IDs associated with this request
+    const userMatches = requestedUserId
+      ? await prisma.user.findMany({
+          where: { OR: [{ id: requestedUserId }, { email: requestedUserId }] },
+          select: { id: true },
+        })
+      : [];
+
+    const userIdsToMatch = Array.from(
+      new Set([
+        "usr_demo",
+        ...(requestedUserId ? [requestedUserId] : []),
+        ...userMatches.map((u) => u.id),
+      ])
+    );
+
     const bookings = await prisma.booking.findMany({
-      where: { userId },
+      where: { userId: { in: userIdsToMatch } },
       include: {
         showtime: {
           include: {
