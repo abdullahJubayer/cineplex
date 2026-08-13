@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { searchTmdbMovies, importTmdbMovie } from "@/lib/tmdb";
 import { checkAdminAuth } from "@/lib/adminAuth";
+import { AI_AGENT_CONFIG } from "@/lib/ai-config";
 
 export async function POST(req: Request) {
   const auth = checkAdminAuth(req);
@@ -252,12 +253,12 @@ export async function POST(req: Request) {
             "X-Title": "Ticketor Admin Assistant",
           },
           body: JSON.stringify({
-            model: "openai/gpt-4o-mini",
+            model: AI_AGENT_CONFIG.model,
             max_tokens: 600,
             messages: [
               {
                 role: "system",
-                content: `You are the executive Admin AI Assistant for Ticketor Cineplex. You control catalog database containing ${moviesCount} movies and ${cinemasCount} cinema locations. Respond concisely with helpful insights, operational tips, or recommendations for theater managers.`,
+                content: AI_AGENT_CONFIG.adminAgent.systemPrompt(moviesCount, cinemasCount),
               },
               { role: "user", content: message },
             ],
@@ -282,12 +283,7 @@ export async function POST(req: Request) {
     // =========================================================================
     return NextResponse.json({
       type: "chat_reply",
-      reply: `Hello Admin! I'm your Full Ticketor Cineplex Operating Assistant. You can ask me to execute any admin operation:
-
-1. 🎬 **Add Movies**: "Search Oppenheimer" or "Add Dune 2"
-2. ⏰ **Schedule Showtimes**: "Schedule Dune 2 at Grand IMAX for tomorrow 8pm"
-3. 🏛️ **Create Cinemas & Seats**: "Create Cinema 'Apex IMAX' with 80 seats"
-4. 🏷️ **Generate Promo Codes**: "Create promo code SUMMER30 for 30% off"`,
+      reply: AI_AGENT_CONFIG.adminAgent.welcomeMessage,
     });
   } catch (e: any) {
     console.error(e);

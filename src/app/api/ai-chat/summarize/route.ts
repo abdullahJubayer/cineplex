@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { AI_AGENT_CONFIG } from "@/lib/ai-config";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
     }
 
     const apiKey = process.env.OPEN_ROUTER_API_KEY?.replace(/['"\s]/g, "").trim();
-    let generatedSummary = "User explored personalized cinema recommendations and genre preferences.";
+    let generatedSummary = AI_AGENT_CONFIG.summarizer.defaultSummary;
 
     if (apiKey && apiKey !== "") {
       try {
@@ -49,13 +50,12 @@ export async function POST(req: Request) {
             "X-Title": "Ticketor Chat Summarizer",
           },
           body: JSON.stringify({
-            model: "openai/gpt-4o-mini",
+            model: AI_AGENT_CONFIG.model,
             max_tokens: 300,
             messages: [
               {
                 role: "system",
-                content:
-                  "Summarize the following movie conversation in 2 concise sentences. Focus on liked genres, favorite movies, disliked themes, and top recommended titles.",
+                content: AI_AGENT_CONFIG.summarizer.systemPrompt,
               },
               { role: "user", content: conversationText },
             ],
