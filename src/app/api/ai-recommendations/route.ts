@@ -132,7 +132,8 @@ async function executeTool(name: string, args: any, requestUserId?: string) {
 
   if (name === "book_ticket_for_user") {
     const { showtimeId, seats, userId: argsUserId } = args;
-    const targetUserId = argsUserId || requestUserId || "usr_demo";
+    const targetUserId = argsUserId || requestUserId;
+    const isAnonymous = !requestUserId;
 
     // Ensure showtime exists or grab the first available showtime
     let showtime = await prisma.showtime.findUnique({
@@ -150,7 +151,7 @@ async function executeTool(name: string, args: any, requestUserId?: string) {
 
     // Resolve valid user record from database to prevent foreign key constraint failures
     let validUser = await prisma.user.findFirst({
-      where: { OR: [{ id: targetUserId }, { email: targetUserId }] },
+      where: { OR: [{ id: targetUserId || "usr_demo" }, { email: targetUserId || "alex@ticketor.com" }] },
     });
 
     if (!validUser) {
@@ -189,6 +190,10 @@ async function executeTool(name: string, args: any, requestUserId?: string) {
       },
     });
 
+    const anonymousNotice = isAnonymous
+      ? `\n\n⚠️ **Important Guest Booking Notice:** Since you are booking as an anonymous guest, please save your booking reference code (**${booking.bookingNo}**) or screenshot your QR entry pass. You must present this reference at the cinema box office counter to collect your official printed tickets **at least 24 hours before showtime**!`
+      : "";
+
     return {
       success: true,
       bookingNo: booking.bookingNo,
@@ -197,7 +202,8 @@ async function executeTool(name: string, args: any, requestUserId?: string) {
       seats: seatList,
       totalPrice: booking.totalPrice,
       qrCodeUrl: booking.qrCodeUrl,
-      confirmationText: `Successfully booked ${seatList.length} ticket(s) for ${booking.showtime.movie.title} for ${validUser.name}! Booking Reference: ${booking.bookingNo}. QR code entry generated in your digital wallet.`,
+      isAnonymousGuest: isAnonymous,
+      confirmationText: `Successfully booked ${seatList.length} ticket(s) for ${booking.showtime.movie.title}! Booking Reference: ${booking.bookingNo}. QR code entry generated in your wallet.${anonymousNotice}`,
     };
   }
 
