@@ -43,7 +43,7 @@ const tools = [
     type: "function",
     function: {
       name: "book_ticket_for_user",
-      description: "Book movie ticket(s) directly for the user for a showtime with selected seat labels (e.g. ['D5', 'D6']). Returns confirmed booking receipt and QR code URL.",
+      description: "DIRECTLY EXECUTE THIS TOOL IMMEDIATELY whenever the user requests to book, reserve, or purchase tickets for a movie with selected seats (e.g. 'Book seats A1 and A2 for Dune Part Two'). Returns confirmed booking receipt and QR code URL.",
       parameters: {
         type: "object",
         properties: {
